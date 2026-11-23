@@ -84,7 +84,7 @@ export function HomeHub({ onNavigate }: Props) {
 
         <section
           className="relative flex justify-center lg:justify-end"
-          aria-label="SubliminaX animated emblem"
+          aria-label="SubliminaX emblem"
         >
           <div className="hero-mark-glow animate-halo" aria-hidden />
           <SubliminaXLogo size="hero" className="hero-mark-img relative z-10" />
