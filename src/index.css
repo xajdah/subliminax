@@ -352,6 +352,81 @@ body {
   color: transparent;
 }
 
+/* Headline word “Engineered.” — orange → teal */
+.hero-engineered {
+  background: linear-gradient(
+    105deg,
+    #fb923c 0%,
+    #fdba74 32%,
+    #c4a46a 55%,
+    #2dd4bf 82%,
+    #14b8a6 100%
+  );
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+/* —— Animated Subliminax logo (DNA + frequency) —— */
+.sx-logo--nav {
+  width: 2.5rem;
+  height: 2.5rem;
+}
+
+.sx-logo--hero {
+  width: min(80vw, 420px);
+  height: auto;
+}
+
+.sx-logo-rungs {
+  animation: sx-dna-drift 4.5s linear infinite;
+}
+
+.sx-logo-wave-track {
+  animation: sx-wave-scroll 3.2s linear infinite;
+}
+
+.sx-logo-dna {
+  transform-origin: 512px 512px;
+  animation: sx-dna-pulse 5s ease-in-out infinite;
+}
+
+@keyframes sx-dna-drift {
+  from {
+    transform: translateY(0);
+  }
+  to {
+    transform: translateY(-34px);
+  }
+}
+
+@keyframes sx-wave-scroll {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(-500px);
+  }
+}
+
+@keyframes sx-dna-pulse {
+  0%,
+  100% {
+    opacity: 0.92;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sx-logo-rungs,
+  .sx-logo-wave-track,
+  .sx-logo-dna {
+    animation: none !important;
+  }
+}
+
 .hero-mark-glow {
   position: absolute;
   width: min(70vw, 420px);

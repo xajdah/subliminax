@@ -1,5 +1,6 @@
 import { useTheme } from '../../hooks/useTheme'
 import type { AppView } from '../../types/studio'
+import { SubliminaXLogo } from '../shared/SubliminaXLogo'
 import { ThemeToggle } from '../ThemeToggle'
 
 interface Props {
@@ -45,7 +46,7 @@ export function HomeHub({ onNavigate }: Props) {
 
       <header className="relative z-10 flex flex-wrap items-center justify-between gap-4 px-6 py-5 sm:px-10 lg:px-14">
         <div className="flex items-center gap-3">
-          <img src="/hero/rings-dna-ecg.svg" alt="" className="h-10 w-10" />
+          <SubliminaXLogo size="nav" className="shrink-0" />
           <p className="font-display text-xl font-extrabold tracking-tight">
             Sublimina<span className="text-teal">x</span>
           </p>
@@ -62,7 +63,7 @@ export function HomeHub({ onNavigate }: Props) {
           </p>
           <h1 className="font-display text-[clamp(2.35rem,5.5vw,3.85rem)] font-extrabold leading-[1.05] tracking-[-0.03em] text-ink">
             <span className="block">Inner Shifts,</span>
-            <span className="block">Engineered.</span>
+            <span className="hero-engineered block">Engineered.</span>
           </h1>
           <p className="mt-6 font-display text-[clamp(1.15rem,2.4vw,1.65rem)] font-semibold tracking-tight text-ink">
             Vibrate{' '}
@@ -81,13 +82,12 @@ export function HomeHub({ onNavigate }: Props) {
           </button>
         </section>
 
-        <section className="relative flex justify-center lg:justify-end" aria-hidden>
-          <div className="hero-mark-glow animate-halo" />
-          <img
-            src="/hero/rings-dna-ecg.svg"
-            alt=""
-            className="hero-mark-img relative z-10 w-[min(80vw,420px)]"
-          />
+        <section
+          className="relative flex justify-center lg:justify-end"
+          aria-label="SubliminaX animated emblem"
+        >
+          <div className="hero-mark-glow animate-halo" aria-hidden />
+          <SubliminaXLogo size="hero" className="hero-mark-img relative z-10" />
         </section>
       </main>
 
