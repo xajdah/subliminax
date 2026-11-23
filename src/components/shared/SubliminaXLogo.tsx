@@ -5,10 +5,9 @@ interface Props {
 }
 
 /**
- * Exact Subliminax emblem (unmodified artwork pixels).
- *
- * Hero: rings + ECG stay still. Only the DNA spirals upward
- * (bottom → top). prefers-reduced-motion → logo-exact.png only.
+ * Exact Subliminax emblem.
+ * Hero: rings + ECG stay as the exact static base. Only DNA spirals
+ * while rising bottom → top. Reduced motion → logo-exact.png.
  */
 export function SubliminaXLogo({
   className = '',
@@ -48,6 +47,7 @@ export function SubliminaXLogo({
       />
 
       <div className="sx-logo-motion" aria-hidden>
+        {/* Exact rings + ECG (static) */}
         <img
           src="/hero/logo-rings-frame.png"
           alt=""
@@ -57,15 +57,6 @@ export function SubliminaXLogo({
 
         <div className="sx-core-clip">
           <div className="sx-layer-align">
-            {/* Static ECG — no animation */}
-            <img
-              src="/hero/logo-freq-layer.png"
-              alt=""
-              className="sx-freq-img"
-              draggable={false}
-            />
-
-            {/* DNA only: spiral + rise bottom → top */}
             <div className="sx-dna-spiral">
               <div className="sx-dna-rise">
                 <img

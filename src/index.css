@@ -447,16 +447,7 @@ body {
   transform: translate(-50%, -50%);
 }
 
-/* ECG — static, never animated */
-.sx-freq-img {
-  position: absolute;
-  inset: 0;
-  width: 100%;
-  height: 100%;
-  z-index: 1;
-}
-
-/* DNA only — spiral + rise bottom → top */
+/* DNA only — spiral + rise bottom → top (ECG lives on static base) */
 .sx-dna-spiral {
   position: absolute;
   inset: 0;
