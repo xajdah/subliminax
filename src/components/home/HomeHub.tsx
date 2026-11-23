@@ -1,0 +1,120 @@
+import { useTheme } from '../../hooks/useTheme'
+import type { AppView } from '../../types/studio'
+import { ThemeToggle } from '../ThemeToggle'
+
+interface Props {
+  onNavigate: (view: AppView) => void
+}
+
+const CARDS: {
+  id: AppView
+  title: string
+  blurb: string
+  primary?: boolean
+}[] = [
+  {
+    id: 'create',
+    title: 'Create Subliminal',
+    blurb: 'Guided workflow — intent, frequency, soundtrack, ambient, voice.',
+    primary: true,
+  },
+  {
+    id: 'presets',
+    title: 'Quick Presets',
+    blurb: 'Jump into curated starting mixes for focus, sleep, and calm.',
+  },
+  {
+    id: 'saved',
+    title: 'Saved Mixes',
+    blurb: 'Reopen sessions you built (local vault — coming online next).',
+  },
+  {
+    id: 'guide',
+    title: 'Psychoacoustics Guide',
+    blurb: 'Plain-language notes on carriers, bands, and masking.',
+  },
+]
+
+export function HomeHub({ onNavigate }: Props) {
+  const { theme, toggleTheme } = useTheme()
+
+  return (
+    <div className="hero-shell relative isolate min-h-screen overflow-hidden">
+      <div className="hero-atmosphere" aria-hidden />
+      <div className="hero-grain" aria-hidden />
+
+      <header className="relative z-10 flex flex-wrap items-center justify-between gap-4 px-6 py-5 sm:px-10 lg:px-14">
+        <div className="flex items-center gap-3">
+          <img src="/hero/rings-dna-ecg.svg" alt="" className="h-10 w-10" />
+          <div>
+            <p className="font-display text-xl font-extrabold tracking-tight">
+              Sublimina<span className="text-teal">x</span>
+            </p>
+            <p className="text-sm text-bronze-soft">Sculpt Your Subconscious.</p>
+          </div>
+        </div>
+        <div className="flex items-center gap-2">
+          <ThemeToggle theme={theme} onToggle={toggleTheme} />
+        </div>
+      </header>
+
+      <main className="relative z-10 mx-auto grid max-w-7xl items-center gap-10 px-6 pb-16 pt-6 sm:px-10 lg:grid-cols-2 lg:px-14">
+        <section className="animate-rise max-w-xl">
+          <p className="mb-3 font-display text-sm font-semibold uppercase tracking-[0.2em] text-bronze-soft">
+            Subliminax
+          </p>
+          <h1 className="font-display text-[clamp(2.2rem,5vw,3.6rem)] font-extrabold leading-[1.08] tracking-tight">
+            Sculpt Your Subconscious.
+          </h1>
+          <p className="mt-3 font-display text-xl font-semibold text-ink/90">
+            Own Your Frequency.
+          </p>
+          <p className="mt-5 max-w-md text-base leading-relaxed text-muted sm:text-lg">
+            Precision psychoacoustics, healing frequencies, ambient beds, and personalized or
+            cloned voice affirmations — all in one studio.
+          </p>
+          <button
+            type="button"
+            className="btn btn-primary mt-8 px-7 py-3 text-base"
+            onClick={() => onNavigate('create')}
+          >
+            Create Subliminal
+          </button>
+        </section>
+
+        <section className="relative flex justify-center lg:justify-end" aria-hidden>
+          <div className="hero-mark-glow animate-halo" />
+          <img
+            src="/hero/rings-dna-ecg.svg"
+            alt=""
+            className="hero-mark-img relative z-10 w-[min(80vw,420px)]"
+          />
+        </section>
+      </main>
+
+      <section className="relative z-10 mx-auto max-w-7xl px-6 pb-20 sm:px-10 lg:px-14">
+        <h2 className="panel-title mb-4 text-lg text-ink">Studio hub</h2>
+        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+          {CARDS.map((card) => (
+            <button
+              key={card.id}
+              type="button"
+              onClick={() => onNavigate(card.id)}
+              className={`panel animate-rise flex min-h-[9rem] flex-col items-start gap-2 p-4 text-left transition hover:border-[var(--border-strong)] ${
+                card.primary ? 'ring-1 ring-[color-mix(in_oklab,var(--accent)_35%,transparent)]' : ''
+              }`}
+            >
+              <span className="font-display text-base font-bold text-ink">{card.title}</span>
+              <span className="text-sm leading-snug text-muted">{card.blurb}</span>
+              {card.primary && (
+                <span className="mt-auto text-xs font-semibold uppercase tracking-wider text-accent-soft">
+                  Primary
+                </span>
+              )}
+            </button>
+          ))}
+        </div>
+      </section>
+    </div>
+  )
+}

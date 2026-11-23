@@ -1,24 +1,62 @@
 import { useState } from 'react'
-import { LandingHero } from './components/landing/LandingHero'
-import { StudioShell } from './components/StudioShell'
+import { CreateSubliminal } from './components/create/CreateSubliminal'
+import { HomeHub } from './components/home/HomeHub'
+import { ThemeToggle } from './components/ThemeToggle'
+import { useTheme } from './hooks/useTheme'
+import type { AppView } from './types/studio'
 
-type Surface = 'landing' | 'studio'
-
-export default function App() {
-  const [surface, setSurface] = useState<Surface>('landing')
-
-  if (surface === 'landing') {
-    return <LandingHero onEnterStudio={() => setSurface('studio')} />
-  }
-
+function Placeholder({
+  title,
+  body,
+  onHome,
+}: {
+  title: string
+  body: string
+  onHome: () => void
+}) {
+  const { theme, toggleTheme } = useTheme()
   return (
-    <>
-      <div className="sticky top-0 z-40 flex justify-end px-4 pt-3 sm:px-6">
-        <button type="button" className="btn btn-ghost" onClick={() => setSurface('landing')}>
+    <div className="mx-auto max-w-3xl px-4 py-8">
+      <div className="mb-6 flex items-center gap-3">
+        <button type="button" className="btn btn-ghost" onClick={onHome}>
           ← Home
         </button>
+        <ThemeToggle theme={theme} onToggle={toggleTheme} />
       </div>
-      <StudioShell />
-    </>
+      <div className="panel p-6">
+        <h1 className="panel-title text-2xl">{title}</h1>
+        <p className="mt-3 text-muted">{body}</p>
+      </div>
+    </div>
+  )
+}
+
+export default function App() {
+  const [view, setView] = useState<AppView>('home')
+
+  if (view === 'home') return <HomeHub onNavigate={setView} />
+  if (view === 'create') return <CreateSubliminal onHome={() => setView('home')} />
+  if (view === 'presets')
+    return (
+      <Placeholder
+        title="Quick Presets"
+        body="Curated starting mixes will live here. Use Create Subliminal for the full guided path today."
+        onHome={() => setView('home')}
+      />
+    )
+  if (view === 'saved')
+    return (
+      <Placeholder
+        title="Saved Mixes"
+        body="Local vault for reopening sessions — structure is ready; persistence lands next."
+        onHome={() => setView('home')}
+      />
+    )
+  return (
+    <Placeholder
+      title="Psychoacoustics Guide"
+      body="Plain-language notes on carriers, brainwave bands, binaural/isochronic audio, and masking. Full guide copy can expand here."
+      onHome={() => setView('home')}
+    />
   )
 }

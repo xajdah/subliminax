@@ -1,260 +1,214 @@
-/** Subliminax Studio — types aligned to customer-guide studio + audio lab options */
+/** Subliminax — core domain types */
 
 export type ThemeMode = 'dark' | 'light'
+export type AppView = 'home' | 'create' | 'studio' | 'presets' | 'saved' | 'guide'
 export type TransportState = 'stopped' | 'playing' | 'paused'
-export type AppSurface = 'simple' | 'studio'
 
-export type IntentId = 'sleep' | 'anxiety' | 'confidence' | 'abundance'
+export type IntentCategory = 'physical' | 'mental' | 'spiritual' | 'emotional' | 'custom'
 
-export type SoundscapeId =
-  | 'silence'
-  | 'rain'
-  | 'open-air'
-  | 'room-tone'
-  | 'drone'
-  | 'ocean'
-  | 'forest'
-  | 'fireplace'
+export type EntrainmentType =
+  | 'off'
+  | 'binaural'
+  | 'monaural'
+  | 'isochronic'
+  | 'pure'
 
-export type NarrationKind = 'device' | 'narrator' | 'voice-print' | 'none'
+export type BrainwaveBand =
+  | 'delta'
+  | 'theta'
+  | 'alpha'
+  | 'beta'
+  | 'gamma'
+  | 'schumann'
+  | 'custom'
 
-export type VisualMode = 'off' | 'cymatics' | 'aura' | 'xray'
+export type MoodCategory =
+  | 'calming'
+  | 'energizing'
+  | 'inspiring'
+  | 'focusing'
+  | 'sleeping'
 
-/** Carrier catalog from the guide (Solfeggio + extras). */
-export const CARRIER_PRESETS = [
-  { hz: 174, label: '174 Hz', note: 'Foundation / grounding' },
-  { hz: 285, label: '285 Hz', note: 'Field repair (traditional)' },
-  { hz: 396, label: '396 Hz', note: 'Liberation from fear' },
-  { hz: 417, label: '417 Hz', note: 'Facilitating change' },
-  { hz: 432, label: '432 Hz', note: 'Alternate tuning reference' },
-  { hz: 528, label: '528 Hz', note: 'Transformation' },
-  { hz: 639, label: '639 Hz', note: 'Connection' },
-  { hz: 741, label: '741 Hz', note: 'Expression' },
-  { hz: 852, label: '852 Hz', note: 'Intuition' },
-  { hz: 888, label: '888 Hz', note: 'Reference tone' },
-  { hz: 963, label: '963 Hz', note: 'Unity' },
-  { hz: 7.83, label: '7.83 Hz', note: 'Schumann reference' },
-] as const
+export type VoiceMode = 'record' | 'clone' | 'narrator' | 'none'
 
-export type BrainwaveBand = 'delta' | 'theta' | 'alpha' | 'beta' | 'gamma'
+export type SpatialMode = 'static' | 'bilateral' | 'hrtf'
 
-export const BRAINWAVE_HZ: Record<BrainwaveBand, number> = {
-  delta: 2,
-  theta: 6,
-  alpha: 10,
-  beta: 16,
-  gamma: 40,
+export type CreateStep =
+  | 'intent'
+  | 'issue'
+  | 'frequency'
+  | 'soundtrack'
+  | 'ambient'
+  | 'voice'
+  | 'mix'
+
+export interface IssueDef {
+  id: string
+  category: Exclude<IntentCategory, 'custom'>
+  label: string
+  description: string
+  recommendedHz: number[]
+  recommendedBand: BrainwaveBand
+  sampleAffirmations: string[]
 }
 
-export interface CarrierConfig {
+export interface MoodTrackDef {
+  id: string
+  mood: MoodCategory
+  name: string
+  blurb: string
+  /** Procedural synth profile key */
+  profile: string
+}
+
+export interface AmbientDef {
+  id: string
+  group: 'nature' | 'texture' | 'noise'
+  label: string
+  profile: string
+}
+
+export interface NarratorPreset {
+  id: string
+  label: string
+  rate: number
+  pitch: number
+}
+
+export interface FrequencyConfig {
   hz: number
-  band: BrainwaveBand | null
+  harmonicShimmer: boolean
+  entrainment: EntrainmentType
+  band: BrainwaveBand
+  beatHz: number
+  progressiveRamp: boolean
+  rampStartHz: number
+  rampEndHz: number
   volume: number
-  muted: boolean
 }
 
-export interface SoundscapeConfig {
-  id: SoundscapeId
+export interface SoundtrackConfig {
+  mood: MoodCategory
+  trackId: string
   volume: number
-  muted: boolean
-  warmthHz: number
-  pan: number
   customFileName: string | null
 }
 
-export interface AffirmationConfig {
-  lines: string[]
-  activeIndex: number
+export interface AmbientLayerState {
+  id: string
+  enabled: boolean
+  gain: number
 }
 
-export interface NarrationConfig {
-  kind: NarrationKind
+export interface VoiceConfig {
+  mode: VoiceMode
+  script: string
   rate: number
   pitch: number
-  volume: number
   loopPauseMs: number
-  voicePrintConsent: boolean
-  hasVoiceSample: boolean
+  volume: number
   narratorId: string
+  cloneProfileId: string
+  hasRecording: boolean
 }
 
-export interface SessionClock {
-  lengthMinutes: number // 1–720
-  elapsedMs: number
+export interface PsychoConfig {
+  autoDuck: boolean
+  multiLayerStack: boolean
+  highCarrierMod: boolean
+  spatial: SpatialMode
+  driftRate: number
 }
 
-/** Audio engineering lab — all off by default per guide. */
-export interface AudioLabConfig {
-  harmonicResonance: boolean
-  solarEarthSync: boolean
-  nearUltrasonicShift: boolean
-  dualPannedReverse: boolean
-  isoPanMatrix: boolean
-  isoPanSpeed: number
-  formantMasking: boolean
-  formantAmount: number
-  sleepCycleInfiltration: boolean
-  environmentMorphing: boolean
-  choreographyEnabled: boolean
-  choreographySteps: ChoreographyStep[]
-  unveilAmount: number // 0–1, 0.01 ≈ guide “1% slide” audition
-  xrayFocus: boolean
-  bioSync: boolean
-  entrainment: 'off' | 'binaural' | 'isochronic' | 'monaural'
-  entrainmentGain: number
-}
-
-export interface ChoreographyStep {
-  id: string
-  atMinute: number
-  hz: number
-  label: string
-}
-
-export interface VisualConfig {
-  mode: VisualMode
-  reduceMotion: boolean
-}
-
-export interface StudioState {
-  surface: AppSurface
-  intentId: IntentId | null
-  carrier: CarrierConfig
-  soundscape: SoundscapeConfig
-  affirmations: AffirmationConfig
-  narration: NarrationConfig
-  clock: SessionClock
-  lab: AudioLabConfig
-  visual: VisualConfig
-  masterVolume: number
-  transport: TransportState
-}
-
-export interface IntentPreset {
-  id: IntentId
-  label: string
-  description: string
-  carrierHz: number
-  soundscape: SoundscapeId
-  lengthMinutes: number
+export interface CustomIntent {
+  name: string
   affirmations: string[]
+  targetHz: number | null
 }
 
-export const INTENT_PRESETS: IntentPreset[] = [
-  {
-    id: 'sleep',
-    label: 'Sleep',
-    description: 'Soft delta-leaning draft for rest',
-    carrierHz: 174,
-    soundscape: 'rain',
-    lengthMinutes: 45,
-    affirmations: [
-      'My body softens into rest.',
-      'Sleep comes easily to me.',
-      'I am safe as I drift deeper.',
-    ],
-  },
-  {
-    id: 'anxiety',
-    label: 'Anxiety',
-    description: 'Grounding draft for nerves',
-    carrierHz: 396,
-    soundscape: 'open-air',
-    lengthMinutes: 20,
-    affirmations: [
-      'I am calm in this moment.',
-      'My breath steadies my mind.',
-      'I release what I do not need to hold.',
-    ],
-  },
-  {
-    id: 'confidence',
-    label: 'Confidence',
-    description: 'Clear present-tense confidence draft',
-    carrierHz: 528,
-    soundscape: 'drone',
-    lengthMinutes: 15,
-    affirmations: [
-      'I trust myself completely.',
-      'I speak and act with quiet certainty.',
-      'I am capable and ready.',
-    ],
-  },
-  {
-    id: 'abundance',
-    label: 'Abundance',
-    description: 'Open, receptive abundance draft',
-    carrierHz: 852,
-    soundscape: 'room-tone',
-    lengthMinutes: 25,
-    affirmations: [
-      'I welcome growth with ease.',
-      'Opportunity flows toward me.',
-      'I am open to receiving.',
-    ],
-  },
+export interface CreateSession {
+  step: CreateStep
+  category: IntentCategory | null
+  issueId: string | null
+  custom: CustomIntent
+  frequency: FrequencyConfig
+  soundtrack: SoundtrackConfig
+  ambients: AmbientLayerState[]
+  voice: VoiceConfig
+  psycho: PsychoConfig
+  masterVolume: number
+  lengthMinutes: number
+}
+
+export const SOLFEGGIO_HZ = [
+  174, 285, 396, 417, 432, 528, 639, 741, 852, 963,
+] as const
+
+export const BRAINWAVE_RANGES: Record<
+  Exclude<BrainwaveBand, 'custom'>,
+  { label: string; hz: number }
+> = {
+  delta: { label: 'Delta 0.5–4 Hz', hz: 2 },
+  theta: { label: 'Theta 4–8 Hz', hz: 6 },
+  alpha: { label: 'Alpha 8–12 Hz', hz: 10 },
+  beta: { label: 'Beta 12–30 Hz', hz: 16 },
+  gamma: { label: 'Gamma 30–100 Hz', hz: 40 },
+  schumann: { label: 'Schumann 7.83 Hz', hz: 7.83 },
+}
+
+export const CREATE_STEPS: { id: CreateStep; label: string; n: number }[] = [
+  { id: 'intent', label: 'Intent', n: 1 },
+  { id: 'issue', label: 'Issue', n: 2 },
+  { id: 'frequency', label: 'Frequency', n: 3 },
+  { id: 'soundtrack', label: 'Soundtrack', n: 4 },
+  { id: 'ambient', label: 'Ambient', n: 5 },
+  { id: 'voice', label: 'Voice', n: 6 },
+  { id: 'mix', label: 'Mix', n: 7 },
 ]
 
-export function createDefaultLab(): AudioLabConfig {
+export function createDefaultSession(): CreateSession {
   return {
-    harmonicResonance: false,
-    solarEarthSync: false,
-    nearUltrasonicShift: false,
-    dualPannedReverse: false,
-    isoPanMatrix: false,
-    isoPanSpeed: 0.05,
-    formantMasking: false,
-    formantAmount: 0.25,
-    sleepCycleInfiltration: false,
-    environmentMorphing: false,
-    choreographyEnabled: false,
-    choreographySteps: [
-      { id: 'c1', atMinute: 0, hz: 10, label: 'Alpha hold' },
-      { id: 'c2', atMinute: 10, hz: 6, label: 'Into theta' },
-      { id: 'c3', atMinute: 25, hz: 2, label: 'Delta settle' },
-    ],
-    unveilAmount: 0,
-    xrayFocus: false,
-    bioSync: false,
-    entrainment: 'off',
-    entrainmentGain: 0.1,
-  }
-}
-
-export function createDefaultStudioState(): StudioState {
-  return {
-    surface: 'studio',
-    intentId: null,
-    carrier: { hz: 528, band: null, volume: 0.16, muted: false },
-    soundscape: {
-      id: 'rain',
+    step: 'intent',
+    category: null,
+    issueId: null,
+    custom: { name: '', affirmations: [''], targetHz: null },
+    frequency: {
+      hz: 528,
+      harmonicShimmer: false,
+      entrainment: 'binaural',
+      band: 'theta',
+      beatHz: 6,
+      progressiveRamp: false,
+      rampStartHz: 10,
+      rampEndHz: 4,
+      volume: 0.14,
+    },
+    soundtrack: {
+      mood: 'calming',
+      trackId: 'velvet-horizon',
       volume: 0.32,
-      muted: false,
-      warmthHz: 1800,
-      pan: 0,
       customFileName: null,
     },
-    affirmations: {
-      lines: [
-        'I am calm, centered, and open to healing.',
-        'Every breath restores my balance.',
-      ],
-      activeIndex: 0,
-    },
-    narration: {
-      kind: 'device',
+    ambients: [],
+    voice: {
+      mode: 'narrator',
+      script: '',
       rate: 0.92,
       pitch: 1,
-      volume: 0.5,
       loopPauseMs: 2800,
-      voicePrintConsent: false,
-      hasVoiceSample: false,
-      narratorId: 'soft',
+      volume: 0.45,
+      narratorId: 'serene-calm',
+      cloneProfileId: 'local-soft',
+      hasRecording: false,
     },
-    clock: { lengthMinutes: 20, elapsedMs: 0 },
-    lab: createDefaultLab(),
-    visual: { mode: 'cymatics', reduceMotion: false },
+    psycho: {
+      autoDuck: true,
+      multiLayerStack: true,
+      highCarrierMod: false,
+      spatial: 'bilateral',
+      driftRate: 0.08,
+    },
     masterVolume: 0.55,
-    transport: 'stopped',
+    lengthMinutes: 20,
   }
 }
