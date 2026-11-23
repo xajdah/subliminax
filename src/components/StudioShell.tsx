@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { getMoodPreset } from '../presets/moods'
 import { useAudioEngine } from '../hooks/useAudioEngine'
 import { useSessionTimer } from '../hooks/useSessionTimer'
@@ -89,11 +89,6 @@ export function StudioShell() {
     engine.setMasterVolume(engine.masterVolume)
   }, [])
 
-  const brandWordmark = useMemo(
-    () => (theme === 'dark' ? '/wordmark-dark.svg' : '/wordmark-light.svg'),
-    [theme],
-  )
-
   const applyMood = (id: MoodId) => {
     const preset = getMoodPreset(id)
     if (!preset) return
@@ -114,11 +109,9 @@ export function StudioShell() {
         <div className="flex min-w-0 items-center gap-3">
           <img src="/logo-mark.svg" alt="" className="h-10 w-10 shrink-0" />
           <div className="min-w-0">
-            <img
-              src={brandWordmark}
-              alt="Subliminax"
-              className="h-7 w-auto max-w-[220px] object-contain object-left sm:h-8"
-            />
+            <h1 className="font-display text-2xl font-extrabold tracking-tight text-ink sm:text-[1.75rem]">
+              Subliminax
+            </h1>
             <p className="mt-0.5 truncate text-sm text-muted">
               Psychoacoustic & subliminal soundtrack studio
             </p>
