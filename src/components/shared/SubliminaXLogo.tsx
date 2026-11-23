@@ -10,8 +10,8 @@ interface Props {
  * Hero motion layers are cut from logo-exact.png:
  * - rings stay still
  * - DNA slowly spirals (full turn returns to the exact pose)
- * - frequency stays the exact ECG line, with a live oscillation that
- *   returns to translateX(0) / scaleY(1) every cycle
+ * - frequency ECG arms stay put horizontally and oscillate up/down
+ *   (no left/right slide); center crossing X comes only from DNA
  *
  * prefers-reduced-motion → original /hero/logo-exact.png only.
  */
