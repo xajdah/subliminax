@@ -304,6 +304,13 @@ body {
   background: #070b0c;
 }
 
+.psycho-studio-atmosphere {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+}
+
 .hero-atmosphere {
   pointer-events: none;
   position: absolute;

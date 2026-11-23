@@ -16,8 +16,8 @@ export function PsychoStudio({ onHome }: Props) {
   const maskDb = eng.state.buses.music + eng.state.breath.envelopeMaskDb
 
   return (
-    <div className="hero-shell min-h-screen">
-      <div className="hero-atmosphere" aria-hidden />
+    <div className="hero-shell relative isolate min-h-screen">
+      <div className="hero-atmosphere psycho-studio-atmosphere" aria-hidden />
       <header className="relative z-10 flex flex-wrap items-center justify-between gap-3 px-5 py-4 sm:px-8">
         <div className="flex items-center gap-3">
           <button type="button" className="btn btn-ghost text-sm" onClick={onHome}>
