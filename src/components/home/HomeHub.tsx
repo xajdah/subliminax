@@ -46,12 +46,9 @@ export function HomeHub({ onNavigate }: Props) {
       <header className="relative z-10 flex flex-wrap items-center justify-between gap-4 px-6 py-5 sm:px-10 lg:px-14">
         <div className="flex items-center gap-3">
           <img src="/hero/rings-dna-ecg.svg" alt="" className="h-10 w-10" />
-          <div>
-            <p className="font-display text-xl font-extrabold tracking-tight">
-              Sublimina<span className="text-teal">x</span>
-            </p>
-            <p className="text-sm text-bronze-soft">Sculpt Your Subconscious.</p>
-          </div>
+          <p className="font-display text-xl font-extrabold tracking-tight">
+            Sublimina<span className="text-teal">x</span>
+          </p>
         </div>
         <div className="flex items-center gap-2">
           <ThemeToggle theme={theme} onToggle={toggleTheme} />
@@ -60,14 +57,16 @@ export function HomeHub({ onNavigate }: Props) {
 
       <main className="relative z-10 mx-auto grid max-w-7xl items-center gap-10 px-6 pb-16 pt-6 sm:px-10 lg:grid-cols-2 lg:px-14">
         <section className="animate-rise max-w-xl">
-          <p className="mb-3 font-display text-sm font-semibold uppercase tracking-[0.2em] text-bronze-soft">
-            Subliminax
+          <p className="mb-5 font-display text-sm font-semibold uppercase tracking-[0.22em] text-bronze-soft">
+            Sublimina<span className="text-teal">x</span>
           </p>
-          <h1 className="font-display text-[clamp(2.2rem,5vw,3.6rem)] font-extrabold leading-[1.08] tracking-tight">
-            Sculpt Your Subconscious.
+          <h1 className="font-display text-[clamp(2.35rem,5.5vw,3.85rem)] font-extrabold leading-[1.05] tracking-[-0.03em] text-ink">
+            <span className="block">Inner Shifts,</span>
+            <span className="block">Engineered.</span>
           </h1>
-          <p className="mt-3 font-display text-xl font-semibold text-ink/90">
-            Own Your Frequency.
+          <p className="mt-6 font-display text-[clamp(1.15rem,2.4vw,1.65rem)] font-semibold tracking-tight text-ink">
+            Vibrate{' '}
+            <span className="hero-tagline-blend">Higher. Think Clearer.</span>
           </p>
           <p className="mt-5 max-w-md text-base leading-relaxed text-muted sm:text-lg">
             Precision psychoacoustics, healing frequencies, ambient beds, and personalized or

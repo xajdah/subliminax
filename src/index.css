@@ -337,6 +337,21 @@ body {
   color: transparent;
 }
 
+/* Tagline blend: orange at “Higher” → teal by the end */
+.hero-tagline-blend {
+  background: linear-gradient(
+    100deg,
+    #fb923c 0%,
+    #fdba74 28%,
+    #c4a46a 52%,
+    #2dd4bf 78%,
+    #14b8a6 100%
+  );
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
 .hero-mark-glow {
   position: absolute;
   width: min(70vw, 420px);
