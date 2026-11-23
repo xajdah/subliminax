@@ -462,21 +462,21 @@ body {
   height: 100%;
 }
 
-/* Frequency — scroll one full logo width; loop lands on exact pose */
-.sx-freq-scroll {
+/*
+  Frequency — exact ECG pixels stay continuous.
+  Live motion oscillates and always returns to the exact rest pose.
+*/
+.sx-freq-live {
   position: absolute;
-  top: 0;
-  left: 0;
-  width: 200%;
-  height: 100%;
-  animation: sx-freq-scroll 6s linear infinite;
+  inset: 0;
+  transform-origin: 50% 50%;
+  animation: sx-freq-live 2.8s ease-in-out infinite;
   will-change: transform;
 }
 
 .sx-freq-img {
   width: 100%;
   height: 100%;
-  max-width: none;
 }
 
 @keyframes sx-dna-spiral {
@@ -488,12 +488,19 @@ body {
   }
 }
 
-@keyframes sx-freq-scroll {
-  from {
-    transform: translateX(0);
+@keyframes sx-freq-live {
+  0%,
+  100% {
+    transform: translateX(0) scaleY(1);
   }
-  to {
-    transform: translateX(-50%);
+  30% {
+    transform: translateX(2.2%) scaleY(1.12);
+  }
+  55% {
+    transform: translateX(-2.4%) scaleY(0.9);
+  }
+  78% {
+    transform: translateX(1.2%) scaleY(1.06);
   }
 }
 
@@ -510,7 +517,7 @@ body {
   }
 
   .sx-dna-spiral,
-  .sx-freq-scroll {
+  .sx-freq-live {
     animation: none !important;
   }
 }

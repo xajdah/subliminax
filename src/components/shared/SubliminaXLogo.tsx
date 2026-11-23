@@ -5,11 +5,15 @@ interface Props {
 }
 
 /**
- * Exact Subliminax emblem (unmodified artwork).
+ * Exact Subliminax emblem (unmodified artwork pixels).
  *
- * Hero: rings stay still; DNA + frequency are pixel layers from the same file.
- * Spiral / scroll loops return to the exact rest pose. Reduced motion shows
- * `/hero/logo-exact.png` only.
+ * Hero motion layers are cut from logo-exact.png:
+ * - rings stay still
+ * - DNA slowly spirals (full turn returns to the exact pose)
+ * - frequency stays the exact ECG line, with a live oscillation that
+ *   returns to translateX(0) / scaleY(1) every cycle
+ *
+ * prefers-reduced-motion → original /hero/logo-exact.png only.
  */
 export function SubliminaXLogo({
   className = '',
@@ -56,7 +60,6 @@ export function SubliminaXLogo({
           draggable={false}
         />
 
-        {/* Clip to innermost circle so motion never leaves the mark */}
         <div className="sx-core-clip">
           <div className="sx-layer-align">
             <div className="sx-dna-spiral">
@@ -68,9 +71,9 @@ export function SubliminaXLogo({
               />
             </div>
 
-            <div className="sx-freq-scroll">
+            <div className="sx-freq-live">
               <img
-                src="/hero/logo-freq-scroll.png"
+                src="/hero/logo-freq-layer.png"
                 alt=""
                 className="sx-freq-img"
                 draggable={false}
