@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { CreateSubliminal } from './components/create/CreateSubliminal'
 import { HomeHub } from './components/home/HomeHub'
+import { PsychoStudio } from './components/studio/PsychoStudio'
 import { ThemeToggle } from './components/ThemeToggle'
 import { useTheme } from './hooks/useTheme'
 import type { AppView } from './types/studio'
@@ -36,13 +37,10 @@ export default function App() {
 
   if (view === 'home') return <HomeHub onNavigate={setView} />
   if (view === 'create') return <CreateSubliminal onHome={() => setView('home')} />
+  if (view === 'studio') return <PsychoStudio onHome={() => setView('home')} />
   if (view === 'presets')
     return (
-      <Placeholder
-        title="Quick Presets"
-        body="Curated starting mixes will live here. Use Create Subliminal for the full guided path today."
-        onHome={() => setView('home')}
-      />
+      <PsychoStudio onHome={() => setView('home')} />
     )
   if (view === 'saved')
     return (

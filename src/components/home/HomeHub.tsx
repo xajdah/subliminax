@@ -20,6 +20,11 @@ const CARDS: {
     primary: true,
   },
   {
+    id: 'studio',
+    title: 'Psycho Studio',
+    blurb: '4-bus DSP engine, X-Ray visualizer, spatial / somatic / illusion tuners.',
+  },
+  {
     id: 'presets',
     title: 'Quick Presets',
     blurb: 'Jump into curated starting mixes for focus, sleep, and calm.',
