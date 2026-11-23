@@ -4,6 +4,7 @@ import { INTENT_CATEGORIES, getIssue, issuesForCategory } from '../../data/issue
 import { MOOD_LABELS, getTrack, tracksForMood } from '../../data/moodTracks'
 import { mixEngine } from '../../audio/MixEngine'
 import { psychoEngine } from '../../audio/PsychoacousticEngine'
+import { downloadPreviewWav } from '../../audio/previewExport'
 import { useMixEngine } from '../../hooks/useMixEngine'
 import { usePsychoEngine } from '../../hooks/usePsychoEngine'
 import { useSessionTimer, formatElapsed } from '../../hooks/useSessionTimer'
@@ -36,7 +37,24 @@ export function CreateSubliminal({ onHome }: Props) {
   const [session, setSession] = useState<CreateSession>(() => createDefaultSession())
   const [issueQuery, setIssueQuery] = useState('')
   const [completeFlash, setCompleteFlash] = useState(false)
+  const [exporting, setExporting] = useState(false)
+  const [exportMsg, setExportMsg] = useState<string | null>(null)
   const elapsed = useSessionTimer(engine.transport)
+
+  const exportWav = async () => {
+    if (exporting) return
+    setExporting(true)
+    setExportMsg('Rendering 12s preview WAV…')
+    try {
+      await downloadPreviewWav(session, 12)
+      setExportMsg('Downloaded — open the WAV on your computer to hear it.')
+    } catch {
+      setExportMsg('Could not export preview WAV.')
+    } finally {
+      setExporting(false)
+      window.setTimeout(() => setExportMsg(null), 6000)
+    }
+  }
 
   useEffect(() => {
     engine.sync(session)
@@ -179,6 +197,14 @@ export function CreateSubliminal({ onHome }: Props) {
           ■
         </button>
         <span className="font-display tabular-nums">{formatElapsed(elapsed)}</span>
+        <button
+          type="button"
+          className="btn btn-teal text-xs"
+          disabled={exporting}
+          onClick={() => void exportWav()}
+        >
+          {exporting ? 'Rendering…' : 'Download 12s WAV'}
+        </button>
         <label className="ml-auto flex min-w-[12rem] items-center gap-2">
           <span className="field-label mb-0">Master</span>
           <input
@@ -199,10 +225,12 @@ export function CreateSubliminal({ onHome }: Props) {
           </span>
         </label>
       </div>
-      <p className="mb-4 text-[11px] text-muted">
-        Tip: drag Master up if the mix feels quiet — studio preview is boosted for audition, but
-        cloud-desktop audio can still be soft.
-      </p>
+      <div className="mb-4 rounded-xl border border-[color-mix(in_oklab,#fbbf24_35%,transparent)] bg-[color-mix(in_oklab,#fbbf24_8%,transparent)] px-3 py-2 text-[12px] leading-snug text-ink">
+        This cloud machine has <strong>no speakers</strong>, so ▶ playback cannot be heard here.
+        Use <strong>Download 12s WAV</strong> and open the file on your computer to audition the
+        mix.
+        {exportMsg ? <span className="mt-1 block text-muted">{exportMsg}</span> : null}
+      </div>
 
       {/* Steps */}
       {session.step === 'intent' && (
