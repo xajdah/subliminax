@@ -470,13 +470,36 @@ body {
   position: absolute;
   inset: 0;
   transform-origin: 50% 50%;
-  animation: sx-freq-live 2.8s ease-in-out infinite;
+  animation: sx-freq-live 2.4s ease-in-out infinite;
   will-change: transform;
 }
 
 .sx-freq-img {
   width: 100%;
   height: 100%;
+}
+
+/* Traveling energy along the exact ECG — settles when the cycle ends */
+.sx-freq-live::after {
+  content: '';
+  position: absolute;
+  left: 18%;
+  right: 18%;
+  top: 46%;
+  height: 8%;
+  border-radius: 999px;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(232, 168, 106, 0.0) 30%,
+    rgba(255, 255, 255, 0.45) 50%,
+    rgba(42, 155, 143, 0.0) 70%,
+    transparent 100%
+  );
+  background-size: 220% 100%;
+  mix-blend-mode: screen;
+  animation: sx-freq-sweep 2.4s linear infinite;
+  pointer-events: none;
 }
 
 @keyframes sx-dna-spiral {
@@ -493,14 +516,23 @@ body {
   100% {
     transform: translateX(0) scaleY(1);
   }
-  30% {
-    transform: translateX(2.2%) scaleY(1.12);
+  22% {
+    transform: translateX(3.5%) scaleY(1.18);
   }
-  55% {
-    transform: translateX(-2.4%) scaleY(0.9);
+  48% {
+    transform: translateX(-4%) scaleY(0.86);
   }
-  78% {
-    transform: translateX(1.2%) scaleY(1.06);
+  72% {
+    transform: translateX(2.5%) scaleY(1.1);
+  }
+}
+
+@keyframes sx-freq-sweep {
+  from {
+    background-position: 120% 0;
+  }
+  to {
+    background-position: -40% 0;
   }
 }
 
@@ -517,7 +549,8 @@ body {
   }
 
   .sx-dna-spiral,
-  .sx-freq-live {
+  .sx-freq-live,
+  .sx-freq-live::after {
     animation: none !important;
   }
 }
