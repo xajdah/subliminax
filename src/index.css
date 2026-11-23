@@ -447,38 +447,42 @@ body {
   transform: translate(-50%, -50%);
 }
 
-/* DNA — slow spiral; 0° / 360° = exact layer */
+/* ECG — static, never animated */
+.sx-freq-img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 1;
+}
+
+/* DNA only — spiral + rise bottom → top */
 .sx-dna-spiral {
   position: absolute;
   inset: 0;
+  z-index: 2;
   transform-origin: 50% 50%;
   transform-style: preserve-3d;
   animation: sx-dna-spiral 14s linear infinite;
   will-change: transform;
+  overflow: hidden;
+}
+
+.sx-dna-rise {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 100%;
+  height: 200%;
+  animation: sx-dna-rise 8s linear infinite;
+  will-change: transform;
 }
 
 .sx-dna-img {
+  display: block;
   width: 100%;
   height: 100%;
-}
-
-/*
-  Frequency — exact ECG pixels stay continuous.
-  Live motion oscillates and always returns to the exact rest pose.
-*/
-/* ECG arms only — center X stays on the DNA layer (spirals with helix) */
-.sx-freq-live {
-  position: absolute;
-  inset: 0;
-  transform-origin: 50% 50%;
-  animation: sx-freq-live 2.4s ease-in-out infinite;
-  will-change: transform;
-  filter: none;
-}
-
-.sx-freq-img {
-  width: 100%;
-  height: 100%;
+  object-fit: fill;
 }
 
 @keyframes sx-dna-spiral {
@@ -490,20 +494,13 @@ body {
   }
 }
 
-/* Vertical oscillation only — no left/right slide */
-@keyframes sx-freq-live {
-  0%,
-  100% {
-    transform: translateY(0) scaleY(1);
+/* Bottom → top: tile scrolls upward; loop lands on the same pose */
+@keyframes sx-dna-rise {
+  from {
+    transform: translateY(0);
   }
-  25% {
-    transform: translateY(-3.5%) scaleY(1.14);
-  }
-  50% {
-    transform: translateY(3.5%) scaleY(0.9);
-  }
-  75% {
-    transform: translateY(-2%) scaleY(1.08);
+  to {
+    transform: translateY(-50%);
   }
 }
 
@@ -520,7 +517,7 @@ body {
   }
 
   .sx-dna-spiral,
-  .sx-freq-live {
+  .sx-dna-rise {
     animation: none !important;
   }
 }
