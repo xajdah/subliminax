@@ -16,18 +16,14 @@ const CARDS: {
   {
     id: 'create',
     title: 'Create Subliminal',
-    blurb: 'Guided workflow — intent, frequency, soundtrack, ambient, voice.',
+    blurb:
+      'Guided workflow — intent through mix, plus Advanced Audio Engineering tools with live preview.',
     primary: true,
-  },
-  {
-    id: 'studio',
-    title: 'Psycho Studio',
-    blurb: '4-bus DSP engine, X-Ray visualizer, spatial / somatic / illusion tuners.',
   },
   {
     id: 'presets',
     title: 'Quick Presets',
-    blurb: 'Jump into curated starting mixes for focus, sleep, and calm.',
+    blurb: 'Jump into Create with curated focus, sleep, and calm starting points.',
   },
   {
     id: 'saved',

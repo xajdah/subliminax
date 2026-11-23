@@ -92,6 +92,37 @@ export class MixEngine {
     this.emit()
   }
 
+  /** Feed the finished mix into an external DSP tap (PsychoacousticEngine) */
+  connectAdvancedTap(node: AudioNode | null) {
+    if (!this.master) return
+    try {
+      this.master.disconnect()
+    } catch {
+      /* ignore */
+    }
+    if (this.analyser) {
+      this.master.connect(this.analyser)
+      try {
+        this.analyser.disconnect()
+      } catch {
+        /* ignore */
+      }
+      if (node) {
+        this.analyser.connect(node)
+      } else if (this.ctx) {
+        this.analyser.connect(this.ctx.destination)
+      }
+    } else if (node) {
+      this.master.connect(node)
+    } else if (this.ctx) {
+      this.master.connect(this.ctx.destination)
+    }
+  }
+
+  getContext(): AudioContext | null {
+    return this.ctx
+  }
+
   sync(session: CreateSession) {
     this.session = session
     if (this.transport === 'playing') this.rebuildLive()

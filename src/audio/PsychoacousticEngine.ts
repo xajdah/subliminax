@@ -40,6 +40,7 @@ interface Bus {
  */
 export class PsychoacousticEngine {
   private ctx: AudioContext | null = null
+  private ownsContext = true
   private master: GainNode | null = null
   private limiter: DynamicsCompressorNode | null = null
   private sum: GainNode | null = null
@@ -124,7 +125,19 @@ export class PsychoacousticEngine {
     return { input, gain, lpf, analyser, out }
   }
 
-  async start() {
+  /** External mix from CreateSubliminal MixEngine taps into the DSP sum */
+  private mixTap: GainNode | null = null
+
+  getMixTap(): GainNode | null {
+    return this.mixTap
+  }
+
+  async start(opts?: { withDemoSources?: boolean; context?: AudioContext }) {
+    const withDemo = opts?.withDemoSources !== false
+    if (opts?.context) {
+      this.ctx = opts.context
+      this.ownsContext = false
+    }
     const ctx = this.ensureCtx()
     if (ctx.state === 'suspended') await ctx.resume()
     if (this.playing) return
@@ -182,9 +195,13 @@ export class PsychoacousticEngine {
       voiceBaseDb: this.state.buses.voice,
     })
 
+    this.mixTap = ctx.createGain()
+    this.mixTap.gain.value = 1
+    this.mixTap.connect(this.sum)
+
     this.sum.connect(this.limiter).connect(this.master).connect(ctx.destination)
 
-    await this.startDemoSources()
+    if (withDemo) await this.startDemoSources()
     this.applyAll()
     this.playing = true
     this.loop()
@@ -331,13 +348,18 @@ export class PsychoacousticEngine {
       this.voiceOsc?.stop()
       this.stopFreqNodes()
       this.noiseNode?.disconnect()
-      this.ctx?.close()
+      this.mixTap?.disconnect()
+      this.master?.disconnect()
+      this.limiter?.disconnect()
+      this.sum?.disconnect()
+      if (this.ownsContext) void this.ctx?.close()
     } catch {
       /* noop */
     }
     this.ctx = null
+    this.ownsContext = true
     this.buses = null
-    this.master = this.limiter = this.sum = null
+    this.master = this.limiter = this.sum = this.mixTap = null
     this.emit()
   }
 

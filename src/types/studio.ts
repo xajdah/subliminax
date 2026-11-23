@@ -1,5 +1,7 @@
 /** Subliminax — core domain types */
 
+import { DEFAULT_PSYCHO, type PsychoacousticState } from './psychoacoustic'
+
 export type ThemeMode = 'dark' | 'light'
 export type AppView = 'home' | 'create' | 'studio' | 'presets' | 'saved' | 'guide'
 export type TransportState = 'stopped' | 'playing' | 'paused'
@@ -120,6 +122,8 @@ export interface PsychoConfig {
   driftRate: number
 }
 
+export type AdvancedPsychoState = PsychoacousticState
+
 export interface CustomIntent {
   name: string
   affirmations: string[]
@@ -136,8 +140,12 @@ export interface CreateSession {
   ambients: AmbientLayerState[]
   voice: VoiceConfig
   psycho: PsychoConfig
+  /** Advanced DSP tools applied on Mix / preview */
+  advancedPsycho: PsychoacousticState
   masterVolume: number
   lengthMinutes: number
+  /** Set when user finishes the create flow */
+  completed?: boolean
 }
 
 export const SOLFEGGIO_HZ = [
@@ -208,7 +216,9 @@ export function createDefaultSession(): CreateSession {
       spatial: 'bilateral',
       driftRate: 0.08,
     },
+    advancedPsycho: structuredClone(DEFAULT_PSYCHO),
     masterVolume: 0.55,
     lengthMinutes: 20,
+    completed: false,
   }
 }

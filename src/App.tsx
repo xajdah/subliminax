@@ -1,7 +1,6 @@
 import { useState } from 'react'
 import { CreateSubliminal } from './components/create/CreateSubliminal'
 import { HomeHub } from './components/home/HomeHub'
-import { PsychoStudio } from './components/studio/PsychoStudio'
 import { ThemeToggle } from './components/ThemeToggle'
 import { useTheme } from './hooks/useTheme'
 import type { AppView } from './types/studio'
@@ -36,12 +35,8 @@ export default function App() {
   const [view, setView] = useState<AppView>('home')
 
   if (view === 'home') return <HomeHub onNavigate={setView} />
-  if (view === 'create') return <CreateSubliminal onHome={() => setView('home')} />
-  if (view === 'studio') return <PsychoStudio onHome={() => setView('home')} />
-  if (view === 'presets')
-    return (
-      <PsychoStudio onHome={() => setView('home')} />
-    )
+  if (view === 'create' || view === 'studio' || view === 'presets')
+    return <CreateSubliminal onHome={() => setView('home')} />
   if (view === 'saved')
     return (
       <Placeholder

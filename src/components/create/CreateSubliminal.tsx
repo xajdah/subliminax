@@ -4,7 +4,10 @@ import { INTENT_CATEGORIES, getIssue, issuesForCategory } from '../../data/issue
 import { MOOD_LABELS, getTrack, tracksForMood } from '../../data/moodTracks'
 import { NARRATOR_PRESETS } from '../../data/narrators'
 import { CLONE_PROFILES } from '../../services/voiceCloneService'
+import { mixEngine } from '../../audio/MixEngine'
+import { psychoEngine } from '../../audio/PsychoacousticEngine'
 import { useMixEngine } from '../../hooks/useMixEngine'
+import { usePsychoEngine } from '../../hooks/usePsychoEngine'
 import { useSessionTimer, formatElapsed } from '../../hooks/useSessionTimer'
 import { useTheme } from '../../hooks/useTheme'
 import {
@@ -21,6 +24,7 @@ import {
   type VoiceMode,
 } from '../../types/studio'
 import { ThemeToggle } from '../ThemeToggle'
+import { AdvancedEngineeringPanel } from './AdvancedEngineeringPanel'
 
 interface Props {
   onHome: () => void
@@ -29,16 +33,45 @@ interface Props {
 export function CreateSubliminal({ onHome }: Props) {
   const { theme, toggleTheme } = useTheme()
   const engine = useMixEngine()
+  const psycho = usePsychoEngine()
   const [session, setSession] = useState<CreateSession>(() => createDefaultSession())
   const [issueQuery, setIssueQuery] = useState('')
+  const [completeFlash, setCompleteFlash] = useState(false)
   const elapsed = useSessionTimer(engine.transport)
 
   useEffect(() => {
     engine.sync(session)
   }, [session, engine.sync])
 
+  useEffect(() => {
+    if (psycho.playing) psychoEngine.applyPreset(session.advancedPsycho)
+  }, [session.advancedPsycho, psycho.playing])
+
   const patch = (p: Partial<CreateSession>) => setSession((s) => ({ ...s, ...p }))
   const go = (step: CreateStep) => patch({ step })
+
+  const previewWithTools = async () => {
+    await engine.play(session)
+    const ctx = mixEngine.getContext()
+    if (!psycho.playing) {
+      await psychoEngine.start({ withDemoSources: true, context: ctx ?? undefined })
+    }
+    psychoEngine.applyPreset(session.advancedPsycho)
+    const tap = psychoEngine.getMixTap()
+    if (tap) mixEngine.connectAdvancedTap(tap)
+  }
+
+  const stopPreview = () => {
+    mixEngine.connectAdvancedTap(null)
+    engine.stop()
+    psycho.stop()
+  }
+
+  const completeTrack = () => {
+    patch({ completed: true })
+    setCompleteFlash(true)
+    window.setTimeout(() => setCompleteFlash(false), 4000)
+  }
 
   const issues = useMemo(() => {
     if (!session.category || session.category === 'custom') return []
@@ -75,7 +108,14 @@ export function CreateSubliminal({ onHome }: Props) {
   return (
     <div className="mx-auto min-h-screen max-w-6xl px-4 py-5 sm:px-6">
       <header className="mb-5 flex flex-wrap items-center gap-3">
-        <button type="button" className="btn btn-ghost" onClick={onHome}>
+        <button
+          type="button"
+          className="btn btn-ghost"
+          onClick={() => {
+            stopPreview()
+            onHome()
+          }}
+        >
           ← Home
         </button>
         <div className="min-w-0">
@@ -131,7 +171,12 @@ export function CreateSubliminal({ onHome }: Props) {
             ▶
           </button>
         )}
-        <button type="button" className="btn btn-ghost btn-icon" aria-label="Stop" onClick={engine.stop}>
+        <button
+          type="button"
+          className="btn btn-ghost btn-icon"
+          aria-label="Stop"
+          onClick={stopPreview}
+        >
           ■
         </button>
         <span className="font-display tabular-nums">{formatElapsed(elapsed)}</span>
@@ -254,7 +299,21 @@ export function CreateSubliminal({ onHome }: Props) {
       )}
 
       {session.step === 'mix' && (
-        <MixStep session={session} onPatch={patch} onPlay={() => engine.play(session)} />
+        <MixStep
+          session={session}
+          onPatch={patch}
+          onPlay={() => engine.play(session)}
+          psychoPlaying={psycho.playing}
+          analysers={psycho.analysers}
+          isolateVoice={psycho.state.isolateVoice}
+          checkMasking={psycho.state.checkMasking}
+          onIsolateVoice={psycho.setIsolateVoice}
+          onCheckMasking={psycho.setCheckMasking}
+          onPreview={previewWithTools}
+          onStopPreview={stopPreview}
+          onComplete={completeTrack}
+          completeFlash={completeFlash}
+        />
       )}
     </div>
   )
@@ -761,83 +820,139 @@ function MixStep({
   session,
   onPatch,
   onPlay,
+  psychoPlaying,
+  analysers,
+  isolateVoice,
+  checkMasking,
+  onIsolateVoice,
+  onCheckMasking,
+  onPreview,
+  onStopPreview,
+  onComplete,
+  completeFlash,
 }: {
   session: CreateSession
   onPatch: (p: Partial<CreateSession>) => void
   onPlay: () => void
+  psychoPlaying: boolean
+  analysers: ReturnType<typeof usePsychoEngine>['analysers']
+  isolateVoice: boolean
+  checkMasking: boolean
+  onIsolateVoice: (on: boolean) => void
+  onCheckMasking: (on: boolean) => void
+  onPreview: () => void
+  onStopPreview: () => void
+  onComplete: () => void
+  completeFlash: boolean
 }) {
   const issue = session.issueId ? getIssue(session.issueId) : null
   const track = getTrack(session.soundtrack.trackId)
   const p = session.psycho
   return (
-    <section className="panel space-y-4 p-5">
-      <h2 className="panel-title text-lg">Mix · Psychoacoustics & Preview</h2>
-      <ul className="space-y-1 text-sm text-muted">
-        <li>
-          Intent:{' '}
-          <span className="text-ink">
-            {session.category === 'custom'
-              ? session.custom.name || 'Custom'
-              : issue?.label ?? session.category}
-          </span>
-        </li>
-        <li>
-          Carrier: <span className="text-ink">{session.frequency.hz} Hz</span> ·{' '}
-          {session.frequency.entrainment}
-        </li>
-        <li>
-          Soundtrack: <span className="text-ink">{track?.name}</span>
-        </li>
-        <li>
-          Ambients:{' '}
-          <span className="text-ink">
-            {session.ambients.filter((a) => a.enabled).length || 'none'}
-          </span>
-        </li>
-        <li>
-          Voice: <span className="text-ink">{session.voice.mode}</span>
-        </li>
-      </ul>
-      <div className="flex flex-wrap gap-2">
-        <button
-          type="button"
-          className="chip"
-          data-active={p.autoDuck}
-          onClick={() => onPatch({ psycho: { ...p, autoDuck: !p.autoDuck } })}
-        >
-          Auto-duck / spectral tuck
-        </button>
-        <button
-          type="button"
-          className="chip"
-          data-active={p.multiLayerStack}
-          onClick={() => onPatch({ psycho: { ...p, multiLayerStack: !p.multiLayerStack } })}
-        >
-          Multi-layer whisper stack
-        </button>
-        <button
-          type="button"
-          className="chip"
-          data-active={p.highCarrierMod}
-          onClick={() => onPatch({ psycho: { ...p, highCarrierMod: !p.highCarrierMod } })}
-        >
-          High-carrier modulation
-        </button>
-        {(['static', 'bilateral', 'hrtf'] as const).map((m) => (
+    <div className="space-y-5">
+      <section className="panel space-y-4 p-5">
+        <h2 className="panel-title text-lg">Mix · Preview & Complete</h2>
+        <ul className="space-y-1 text-sm text-muted">
+          <li>
+            Intent:{' '}
+            <span className="text-ink">
+              {session.category === 'custom'
+                ? session.custom.name || 'Custom'
+                : issue?.label ?? session.category}
+            </span>
+          </li>
+          <li>
+            Carrier: <span className="text-ink">{session.frequency.hz} Hz</span> ·{' '}
+            {session.frequency.entrainment}
+          </li>
+          <li>
+            Soundtrack: <span className="text-ink">{track?.name}</span>
+          </li>
+          <li>
+            Ambients:{' '}
+            <span className="text-ink">
+              {session.ambients.filter((a) => a.enabled).length || 'none'}
+            </span>
+          </li>
+          <li>
+            Voice: <span className="text-ink">{session.voice.mode}</span>
+          </li>
+        </ul>
+        <div className="flex flex-wrap gap-2">
           <button
-            key={m}
             type="button"
-            className="chip chip-teal"
-            data-active={p.spatial === m}
-            onClick={() => onPatch({ psycho: { ...p, spatial: m } })}
+            className="chip"
+            data-active={p.autoDuck}
+            onClick={() => onPatch({ psycho: { ...p, autoDuck: !p.autoDuck } })}
           >
-            {m === 'hrtf' ? '3D HRTF Orbit' : m === 'bilateral' ? 'Bilateral Drift' : 'Static Stereo'}
+            Auto-duck / spectral tuck
           </button>
-        ))}
-      </div>
-      <button type="button" className="btn btn-primary px-6 py-3" onClick={onPlay}>
-        Play mix
-      </button>
-    </section>
+          <button
+            type="button"
+            className="chip"
+            data-active={p.multiLayerStack}
+            onClick={() => onPatch({ psycho: { ...p, multiLayerStack: !p.multiLayerStack } })}
+          >
+            Multi-layer whisper stack
+          </button>
+          <button
+            type="button"
+            className="chip"
+            data-active={p.highCarrierMod}
+            onClick={() => onPatch({ psycho: { ...p, highCarrierMod: !p.highCarrierMod } })}
+          >
+            High-carrier modulation
+          </button>
+          {(['static', 'bilateral', 'hrtf'] as const).map((m) => (
+            <button
+              key={m}
+              type="button"
+              className="chip chip-teal"
+              data-active={p.spatial === m}
+              onClick={() => onPatch({ psycho: { ...p, spatial: m } })}
+            >
+              {m === 'hrtf' ? '3D HRTF Orbit' : m === 'bilateral' ? 'Bilateral Drift' : 'Static Stereo'}
+            </button>
+          ))}
+        </div>
+        <div className="flex flex-wrap gap-2">
+          <button type="button" className="btn btn-ghost" onClick={onPlay}>
+            Play base mix
+          </button>
+          {!psychoPlaying ? (
+            <button type="button" className="btn btn-teal" onClick={onPreview}>
+              Preview with tools
+            </button>
+          ) : (
+            <button type="button" className="btn btn-ghost" onClick={onStopPreview}>
+              Stop preview
+            </button>
+          )}
+          <button type="button" className="btn btn-primary px-6" onClick={onComplete}>
+            {session.completed ? 'Track completed ✓' : 'Complete track'}
+          </button>
+        </div>
+        {(completeFlash || session.completed) && (
+          <p className="rounded-lg border border-[color-mix(in_oklab,var(--accent)_40%,transparent)] bg-[color-mix(in_oklab,var(--accent)_10%,transparent)] px-3 py-2 text-sm text-ink">
+            Track locked with your advanced engineering chain. Reopen anytime from Saved Mixes.
+          </p>
+        )}
+      </section>
+
+      <section className="panel space-y-4 p-5">
+        <AdvancedEngineeringPanel
+          advanced={session.advancedPsycho}
+          onChange={(advancedPsycho) => onPatch({ advancedPsycho })}
+          analysers={analysers}
+          enginePlaying={psychoPlaying}
+          onPreview={onPreview}
+          onStopPreview={onStopPreview}
+          isolateVoice={isolateVoice}
+          checkMasking={checkMasking}
+          onIsolateVoice={onIsolateVoice}
+          onCheckMasking={onCheckMasking}
+        />
+      </section>
+    </div>
   )
 }
