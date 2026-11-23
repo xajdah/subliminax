@@ -7,12 +7,9 @@ interface Props {
 /**
  * Exact Subliminax emblem (unmodified artwork).
  *
- * Hero motion uses pixel layers cut from the same file:
- * - concentric rings stay still
- * - DNA layer slowly spirals (full 360° → identical to rest)
- * - frequency layer scrolls one logo-width → identical to rest
- *
- * Prefers-reduced-motion / “static” fallback shows the original logo file only.
+ * Hero: rings stay still; DNA + frequency are pixel layers from the same file.
+ * Spiral / scroll loops return to the exact rest pose. Reduced motion shows
+ * `/hero/logo-exact.png` only.
  */
 export function SubliminaXLogo({
   className = '',
@@ -44,7 +41,6 @@ export function SubliminaXLogo({
       role="img"
       aria-label={title}
     >
-      {/* Static exact mark — shown when motion is off */}
       <img
         src="/hero/logo-exact.png"
         alt=""
@@ -52,7 +48,6 @@ export function SubliminaXLogo({
         draggable={false}
       />
 
-      {/* Animated composite — same pixels; loops back to the exact rest pose */}
       <div className="sx-logo-motion" aria-hidden>
         <img
           src="/hero/logo-rings-frame.png"
@@ -61,25 +56,26 @@ export function SubliminaXLogo({
           draggable={false}
         />
 
-        <div className="sx-dna-stage">
-          <div className="sx-dna-spiral">
-            <img
-              src="/hero/logo-dna-layer.png"
-              alt=""
-              className="sx-dna-img"
-              draggable={false}
-            />
-          </div>
-        </div>
+        {/* Clip to innermost circle so motion never leaves the mark */}
+        <div className="sx-core-clip">
+          <div className="sx-layer-align">
+            <div className="sx-dna-spiral">
+              <img
+                src="/hero/logo-dna-layer.png"
+                alt=""
+                className="sx-dna-img"
+                draggable={false}
+              />
+            </div>
 
-        <div className="sx-freq-stage">
-          <div className="sx-freq-scroll">
-            <img
-              src="/hero/logo-freq-scroll.png"
-              alt=""
-              className="sx-freq-img"
-              draggable={false}
-            />
+            <div className="sx-freq-scroll">
+              <img
+                src="/hero/logo-freq-scroll.png"
+                alt=""
+                className="sx-freq-img"
+                draggable={false}
+              />
+            </div>
           </div>
         </div>
       </div>
