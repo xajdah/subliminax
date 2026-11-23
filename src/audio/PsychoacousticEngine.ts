@@ -66,6 +66,10 @@ export class PsychoacousticEngine {
   private isoLfo: OscillatorNode | null = null
   private voiceOsc: OscillatorNode | null = null
   private voiceGain: GainNode | null = null
+  private voiceBufferSrc: AudioBufferSourceNode | null = null
+  private voiceBufferGain: GainNode | null = null
+  private voiceBuffer: AudioBuffer | null = null
+  private voiceBufferLoop = true
   private savedBuses: PsychoacousticState['buses'] | null = null
   private raf = 0
 
@@ -202,6 +206,7 @@ export class PsychoacousticEngine {
     this.sum.connect(this.limiter).connect(this.master).connect(ctx.destination)
 
     if (withDemo) await this.startDemoSources()
+    if (this.voiceBuffer) this.startVoiceBufferPlayback()
     this.applyAll()
     this.playing = true
     this.loop()
@@ -346,6 +351,7 @@ export class PsychoacousticEngine {
     try {
       this.musicOsc?.stop()
       this.voiceOsc?.stop()
+      this.stopVoiceBufferPlayback()
       this.stopFreqNodes()
       this.noiseNode?.disconnect()
       this.mixTap?.disconnect()
@@ -436,6 +442,57 @@ export class PsychoacousticEngine {
 
   triggerAffirmation() {
     this.illusions?.triggerAffirmationPhrase()
+  }
+
+  /**
+   * Route an affirmation AudioBuffer into the Voice bus at calibrated
+   * default gain (−32 dBFS bus trim; breath mask targets −18 dB delta).
+   */
+  async injectVoiceBuffer(buffer: AudioBuffer, opts?: { loop?: boolean }) {
+    this.voiceBuffer = buffer
+    this.voiceBufferLoop = opts?.loop !== false
+    if (!this.playing || !this.ctx || !this.buses) return
+    this.startVoiceBufferPlayback()
+  }
+
+  clearVoiceBuffer() {
+    this.stopVoiceBufferPlayback()
+    this.voiceBuffer = null
+  }
+
+  getVoiceInput(): GainNode | null {
+    return this.buses?.voice.input ?? null
+  }
+
+  private startVoiceBufferPlayback() {
+    if (!this.ctx || !this.buses || !this.voiceBuffer) return
+    this.stopVoiceBufferPlayback()
+    // Mute demo voice carrier when real affirmations are on the bus
+    if (this.voiceGain) {
+      setParam(this.voiceGain.gain, 0.0001, this.ctx)
+    }
+    const src = this.ctx.createBufferSource()
+    src.buffer = this.voiceBuffer
+    src.loop = this.voiceBufferLoop
+    const g = this.ctx.createGain()
+    // Unity into bus — bus trim holds −32 dBFS calibration
+    g.gain.value = 1
+    src.connect(g).connect(this.buses.voice.input)
+    src.start()
+    this.voiceBufferSrc = src
+    this.voiceBufferGain = g
+  }
+
+  private stopVoiceBufferPlayback() {
+    try {
+      this.voiceBufferSrc?.stop()
+      this.voiceBufferSrc?.disconnect()
+      this.voiceBufferGain?.disconnect()
+    } catch {
+      /* noop */
+    }
+    this.voiceBufferSrc = null
+    this.voiceBufferGain = null
   }
 
   applyPreset(state: PsychoacousticState) {

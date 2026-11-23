@@ -51,6 +51,11 @@ export const voiceCloneService = {
 
   profiles: CLONE_PROFILES,
 
+  /** Narrator path — same Web Speech fallback; enforce word cap in UI before calling. */
+  speakNarrator(opts: SpeakOptions) {
+    this.speak(opts)
+  },
+
   /** Speak with clone profile or Web Speech fallback. */
   speak(opts: SpeakOptions) {
     if (!this.supported || !opts.text.trim()) {

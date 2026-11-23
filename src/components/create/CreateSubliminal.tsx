@@ -2,8 +2,6 @@ import { useEffect, useMemo, useState } from 'react'
 import { AMBIENT_GROUPS, AMBIENTS } from '../../data/ambients'
 import { INTENT_CATEGORIES, getIssue, issuesForCategory } from '../../data/issues'
 import { MOOD_LABELS, getTrack, tracksForMood } from '../../data/moodTracks'
-import { NARRATOR_PRESETS } from '../../data/narrators'
-import { CLONE_PROFILES } from '../../services/voiceCloneService'
 import { mixEngine } from '../../audio/MixEngine'
 import { psychoEngine } from '../../audio/PsychoacousticEngine'
 import { useMixEngine } from '../../hooks/useMixEngine'
@@ -21,10 +19,11 @@ import {
   type EntrainmentType,
   type IntentCategory,
   type MoodCategory,
-  type VoiceMode,
 } from '../../types/studio'
 import { ThemeToggle } from '../ThemeToggle'
 import { AdvancedEngineeringPanel } from './AdvancedEngineeringPanel'
+import { AiScriptArchitect } from './AiScriptArchitect'
+import { VoiceDeliveryPanel } from './VoiceDeliveryPanel'
 
 interface Props {
   onHome: () => void
@@ -641,178 +640,32 @@ function VoiceStep({
   onNext: () => void
 }) {
   const v = session.voice
-  const patch = (p: Partial<typeof v>) => onChange({ ...v, ...p })
-  const modes: { id: VoiceMode; label: string }[] = [
-    { id: 'record', label: 'Record Your Own' },
-    { id: 'clone', label: 'Text-to-Voice Clone' },
-    { id: 'narrator', label: 'Text-to-Narrator' },
-    { id: 'none', label: 'No Narration / Pure Audio' },
-  ]
   return (
-    <section className="panel space-y-4 p-5">
-      <h2 className="panel-title text-lg">Step 6 · Voice / Narration</h2>
-      <div className="flex flex-wrap gap-1.5">
-        {modes.map((m) => (
-          <button
-            key={m.id}
-            type="button"
-            className="chip chip-teal"
-            data-active={v.mode === m.id}
-            onClick={() => patch({ mode: m.id })}
-          >
-            {m.label}
-          </button>
-        ))}
+    <section className="panel space-y-5 p-5">
+      <div>
+        <h2 className="panel-title text-lg">Step 6 · Voice / Narration</h2>
+        <p className="mt-1 text-sm text-muted">
+          Architect your script, then route it through Record, Clone, or Narrator into the Voice bus.
+        </p>
       </div>
-      {v.mode !== 'none' && v.mode !== 'record' && (
-        <>
-          <label className="block">
-            <span className="field-label">Affirmation script</span>
-            <textarea
-              className="field-textarea min-h-[6rem]"
-              value={v.script}
-              onChange={(e) => patch({ script: e.target.value })}
-            />
-          </label>
-          {v.mode === 'clone' && (
-            <div className="flex flex-wrap gap-1.5">
-              {CLONE_PROFILES.map((p) => (
-                <button
-                  key={p.id}
-                  type="button"
-                  className="chip"
-                  data-active={v.cloneProfileId === p.id}
-                  onClick={() => patch({ cloneProfileId: p.id })}
-                >
-                  {p.label}
-                </button>
-              ))}
-            </div>
-          )}
-          {v.mode === 'narrator' && (
-            <div className="flex flex-wrap gap-1.5">
-              {NARRATOR_PRESETS.map((p) => (
-                <button
-                  key={p.id}
-                  type="button"
-                  className="chip"
-                  data-active={v.narratorId === p.id}
-                  onClick={() => patch({ narratorId: p.id, rate: p.rate, pitch: p.pitch })}
-                >
-                  {p.label}
-                </button>
-              ))}
-            </div>
-          )}
-          <div className="grid gap-3 sm:grid-cols-3">
-            <label>
-              <span className="field-label">Rate</span>
-              <input
-                className="field-range"
-                type="range"
-                min={0.5}
-                max={1.5}
-                step={0.01}
-                value={v.rate}
-                onChange={(e) => patch({ rate: Number(e.target.value) })}
-              />
-            </label>
-            <label>
-              <span className="field-label">Pitch</span>
-              <input
-                className="field-range"
-                type="range"
-                min={0.5}
-                max={1.5}
-                step={0.01}
-                value={v.pitch}
-                onChange={(e) => patch({ pitch: Number(e.target.value) })}
-              />
-            </label>
-            <label>
-              <span className="field-label">Loop pause (ms)</span>
-              <input
-                className="field-input"
-                type="number"
-                value={v.loopPauseMs}
-                onChange={(e) => patch({ loopPauseMs: Number(e.target.value) })}
-              />
-            </label>
-          </div>
-        </>
-      )}
-      {v.mode === 'record' && (
-        <VoiceRecorder onRecorded={() => patch({ hasRecording: true })} />
-      )}
+
+      <AiScriptArchitect
+        intake={v.intake}
+        generated={v.generated}
+        activeFormat={v.activeFormat}
+        onIntakeChange={(intake) => onChange({ ...v, intake })}
+        onGenerated={(generated) => onChange({ ...v, generated })}
+        onUseScript={(format, text) =>
+          onChange({ ...v, script: text, activeFormat: format })
+        }
+      />
+
+      <VoiceDeliveryPanel voice={v} onChange={onChange} />
+
       <button type="button" className="btn btn-primary" onClick={onNext}>
         Next · Mix
       </button>
     </section>
-  )
-}
-
-function VoiceRecorder({ onRecorded }: { onRecorded: () => void }) {
-  const [rec, setRec] = useState<MediaRecorder | null>(null)
-  const [level, setLevel] = useState(0)
-  const [err, setErr] = useState<string | null>(null)
-
-  const start = async () => {
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true })
-      const mr = new MediaRecorder(stream)
-      const chunks: BlobPart[] = []
-      mr.ondataavailable = (e) => chunks.push(e.data)
-      mr.onstop = () => {
-        stream.getTracks().forEach((t) => t.stop())
-        onRecorded()
-      }
-      // crude level meter
-      const ctx = new AudioContext()
-      const src = ctx.createMediaStreamSource(stream)
-      const an = ctx.createAnalyser()
-      src.connect(an)
-      const data = new Uint8Array(an.fftSize)
-      const tick = () => {
-        an.getByteTimeDomainData(data)
-        let s = 0
-        for (let i = 0; i < data.length; i++) {
-          const v = (data[i]! - 128) / 128
-          s += v * v
-        }
-        setLevel(Math.min(1, Math.sqrt(s / data.length) * 4))
-        if (mr.state === 'recording') requestAnimationFrame(tick)
-      }
-      mr.start()
-      setRec(mr)
-      requestAnimationFrame(tick)
-    } catch {
-      setErr('Microphone permission denied or unavailable.')
-    }
-  }
-
-  return (
-    <div className="rounded-xl border border-border bg-bg/40 p-4">
-      <p className="mb-2 text-sm text-muted">Built-in MediaRecorder · live level · re-record anytime.</p>
-      <div className="mb-3 h-2 overflow-hidden rounded-full bg-bg">
-        <div
-          className="h-full rounded-full"
-          style={{
-            width: `${level * 100}%`,
-            background: 'linear-gradient(90deg, var(--accent-2), var(--accent))',
-          }}
-        />
-      </div>
-      {rec?.state === 'recording' ? (
-        <button type="button" className="btn btn-primary" onClick={() => rec.stop()}>
-          Stop
-        </button>
-      ) : (
-        <button type="button" className="btn btn-teal" onClick={() => void start()}>
-          Record
-        </button>
-      )}
-      {err && <p className="mt-2 text-sm text-danger">{err}</p>}
-    </div>
   )
 }
 

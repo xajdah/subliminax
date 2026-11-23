@@ -102,6 +102,20 @@ export interface AmbientLayerState {
   gain: number
 }
 
+export type ScriptFormatId = 'short' | 'medium' | 'long'
+
+export interface ScriptIntakeAnswers {
+  feeling: string
+  facing: string
+  achieve: string
+}
+
+export interface GeneratedScriptSet {
+  short: string
+  medium: string
+  long: string
+}
+
 export interface VoiceConfig {
   mode: VoiceMode
   script: string
@@ -112,6 +126,12 @@ export interface VoiceConfig {
   narratorId: string
   cloneProfileId: string
   hasRecording: boolean
+  /** Guided AI Script Architect answers */
+  intake: ScriptIntakeAnswers
+  /** Last generated Short / Medium / Long pack */
+  generated: GeneratedScriptSet | null
+  /** Which generated format was last applied to the editor */
+  activeFormat: ScriptFormatId | null
 }
 
 export interface PsychoConfig {
@@ -208,6 +228,9 @@ export function createDefaultSession(): CreateSession {
       narratorId: 'serene-calm',
       cloneProfileId: 'local-soft',
       hasRecording: false,
+      intake: { feeling: '', facing: '', achieve: '' },
+      generated: null,
+      activeFormat: null,
     },
     psycho: {
       autoDuck: true,

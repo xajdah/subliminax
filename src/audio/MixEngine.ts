@@ -123,6 +123,11 @@ export class MixEngine {
     return this.ctx
   }
 
+  /** Ensure an AudioContext exists without starting transport (for Voice bus routing). */
+  ensureContext(): AudioContext {
+    return this.ensure()
+  }
+
   sync(session: CreateSession) {
     this.session = session
     if (this.transport === 'playing') this.rebuildLive()
@@ -342,8 +347,12 @@ export class MixEngine {
   private startVoice(voice: VoiceConfig) {
     this.stopVoice()
     if (voice.mode === 'none' || voice.mode === 'record') return
-    // record playback wired when buffer available — TTS paths below
     if (!voice.script.trim()) return
+    // Narrator hard cap — refuse over-limit scripts at mix time
+    if (voice.mode === 'narrator') {
+      const words = voice.script.trim().split(/\s+/).filter(Boolean).length
+      if (words > 100) return
+    }
     this.speaking = true
     const narrator = NARRATOR_PRESETS.find((n) => n.id === voice.narratorId)
     const rate = voice.mode === 'narrator' && narrator ? narrator.rate : voice.rate
@@ -355,7 +364,11 @@ export class MixEngine {
 
     const cycle = () => {
       if (!this.speaking) return
-      voiceCloneService.speak({
+      const speak =
+        voice.mode === 'narrator'
+          ? voiceCloneService.speakNarrator.bind(voiceCloneService)
+          : voiceCloneService.speak.bind(voiceCloneService)
+      speak({
         text: voice.script,
         rate,
         pitch,
@@ -364,7 +377,7 @@ export class MixEngine {
         onEnd: () => {
           if (!this.speaking) return
           if (this.session?.psycho.multiLayerStack) {
-            voiceCloneService.speak({
+            speak({
               text: voice.script,
               rate: rate * 1.1,
               pitch: pitch * 0.92,
