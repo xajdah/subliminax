@@ -2,6 +2,7 @@ import { AMBIENTS } from '../data/ambients'
 import { getTrack } from '../data/moodTracks'
 import { NARRATOR_PRESETS } from '../data/narrators'
 import { voiceCloneService } from '../services/voiceCloneService'
+import { TTS_MAX_MS, trimScriptToTtsLimit } from '../services/voiceLimits'
 import type {
   AmbientLayerState,
   CreateSession,
@@ -361,6 +362,8 @@ export class MixEngine {
     const vol = this.session?.psycho.multiLayerStack
       ? voice.volume * 0.55
       : voice.volume * 0.35
+    // Narrator + Clone: spoken audio hard-capped at 2 minutes
+    const spokenText = trimScriptToTtsLimit(voice.script, rate)
 
     const cycle = () => {
       if (!this.speaking) return
@@ -369,20 +372,22 @@ export class MixEngine {
           ? voiceCloneService.speakNarrator.bind(voiceCloneService)
           : voiceCloneService.speak.bind(voiceCloneService)
       speak({
-        text: voice.script,
+        text: spokenText,
         rate,
         pitch,
         volume: vol,
         profileId,
+        maxMs: TTS_MAX_MS,
         onEnd: () => {
           if (!this.speaking) return
           if (this.session?.psycho.multiLayerStack) {
             speak({
-              text: voice.script,
+              text: spokenText,
               rate: rate * 1.1,
               pitch: pitch * 0.92,
               volume: vol * 0.3,
               profileId,
+              maxMs: TTS_MAX_MS,
             })
           }
           this.speechTimer = window.setTimeout(cycle, Math.max(400, voice.loopPauseMs))

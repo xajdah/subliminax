@@ -42,8 +42,12 @@ export interface SpeakOptions {
   pitch: number
   volume: number
   profileId: string
+  /** Hard stop after this many ms (Narrator / Clone = 2 minutes). */
+  maxMs?: number
   onEnd?: () => void
 }
+
+let speakCapTimer: number | null = null
 
 export const voiceCloneService = {
   supported:
@@ -51,7 +55,7 @@ export const voiceCloneService = {
 
   profiles: CLONE_PROFILES,
 
-  /** Narrator path — same Web Speech fallback; enforce word cap in UI before calling. */
+  /** Narrator path — same Web Speech fallback; enforce word/time caps in UI before calling. */
   speakNarrator(opts: SpeakOptions) {
     this.speak(opts)
   },
@@ -62,6 +66,7 @@ export const voiceCloneService = {
       opts.onEnd?.()
       return
     }
+    this.clearCapTimer()
     void window.speechSynthesis.getVoices()
     const profile = CLONE_PROFILES.find((p) => p.id === opts.profileId)
     // API profiles fall back locally until wired
@@ -71,14 +76,32 @@ export const voiceCloneService = {
     u.rate = Math.max(0.5, Math.min(2, opts.rate))
     u.pitch = Math.max(0.5, Math.min(2, opts.pitch))
     u.volume = Math.max(0, Math.min(1, opts.volume))
-    u.onend = () => opts.onEnd?.()
-    u.onerror = () => opts.onEnd?.()
+    const finish = () => {
+      this.clearCapTimer()
+      opts.onEnd?.()
+    }
+    u.onend = finish
+    u.onerror = finish
     // Placeholder for API: if (profile?.provider === 'api') return fetch(...)
     void profile
     window.speechSynthesis.speak(u)
+    if (opts.maxMs && opts.maxMs > 0) {
+      speakCapTimer = window.setTimeout(() => {
+        window.speechSynthesis.cancel()
+        finish()
+      }, opts.maxMs)
+    }
+  },
+
+  clearCapTimer() {
+    if (speakCapTimer != null) {
+      window.clearTimeout(speakCapTimer)
+      speakCapTimer = null
+    }
   },
 
   cancel() {
+    this.clearCapTimer()
     if (this.supported) window.speechSynthesis.cancel()
   },
 }

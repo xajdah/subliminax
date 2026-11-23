@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { mixEngine } from '../../audio/MixEngine'
 import { psychoEngine } from '../../audio/PsychoacousticEngine'
 import { NARRATOR_PRESETS } from '../../data/narrators'
@@ -7,8 +7,22 @@ import {
   countWords,
   NARRATOR_WORD_LIMIT,
 } from '../../services/scriptGenerator'
-import { synthesizeAffirmationBuffer, decodeRecordingToBuffer } from '../../services/voiceBufferService'
+import {
+  synthesizeAffirmationBuffer,
+  decodeRecordingToBuffer,
+} from '../../services/voiceBufferService'
 import { CLONE_PROFILES, voiceCloneService } from '../../services/voiceCloneService'
+import {
+  estimateTtsSeconds,
+  formatClock,
+  isTtsOverLimit,
+  RECORD_MAX_MS,
+  RECORD_MAX_SECONDS,
+  TTS_MAX_MS,
+  TTS_MAX_SECONDS,
+  trimScriptToTtsLimit,
+  truncateAudioBuffer,
+} from '../../services/voiceLimits'
 import type { VoiceConfig, VoiceMode } from '../../types/studio'
 
 interface Props {
@@ -20,17 +34,17 @@ const MODES: { id: VoiceMode; label: string; blurb: string }[] = [
   {
     id: 'record',
     label: 'Record Own Voice',
-    blurb: 'Teleprompter + mic — any script length',
+    blurb: 'Teleprompter + mic · max 30 minutes',
   },
   {
     id: 'clone',
     label: 'Voice Cloning TTS',
-    blurb: 'Cloned profile · no 100-word cap',
+    blurb: 'Cloned profile · max 2 minutes of audio',
   },
   {
     id: 'narrator',
     label: 'Narrator TTS',
-    blurb: 'Strict 100-word Narrator guardrail',
+    blurb: '100-word + 2-minute audio cap',
   },
   {
     id: 'none',
@@ -42,17 +56,52 @@ const MODES: { id: VoiceMode; label: string; blurb: string }[] = [
 export function VoiceDeliveryPanel({ voice, onChange }: Props) {
   const patch = (p: Partial<VoiceConfig>) => onChange({ ...voice, ...p })
   const words = useMemo(() => countWords(voice.script), [voice.script])
+  const ttsSeconds = useMemo(
+    () => estimateTtsSeconds(voice.script, voice.rate),
+    [voice.script, voice.rate],
+  )
+  const ttsOver = useMemo(
+    () =>
+      (voice.mode === 'narrator' || voice.mode === 'clone') &&
+      isTtsOverLimit(voice.script, voice.rate),
+    [voice.mode, voice.script, voice.rate],
+  )
   const narratorOver = voice.mode === 'narrator' && words > NARRATOR_WORD_LIMIT
   const [busy, setBusy] = useState(false)
   const [status, setStatus] = useState<string | null>(null)
   const [recError, setRecError] = useState<string | null>(null)
   const [recording, setRecording] = useState(false)
+  const [recElapsed, setRecElapsed] = useState(0)
   const [level, setLevel] = useState(0)
+  const recCapTimer = useRef<number | null>(null)
+  const recTickTimer = useRef<number | null>(null)
+  const recStartedAt = useRef<number>(0)
+
+  useEffect(() => {
+    return () => {
+      if (recCapTimer.current != null) window.clearTimeout(recCapTimer.current)
+      if (recTickTimer.current != null) window.clearInterval(recTickTimer.current)
+    }
+  }, [])
+
+  const clearRecTimers = () => {
+    if (recCapTimer.current != null) {
+      window.clearTimeout(recCapTimer.current)
+      recCapTimer.current = null
+    }
+    if (recTickTimer.current != null) {
+      window.clearInterval(recTickTimer.current)
+      recTickTimer.current = null
+    }
+  }
 
   const injectToVoiceBus = async (script: string) => {
     const useCtx = mixEngine.ensureContext()
     if (useCtx.state === 'suspended') await useCtx.resume()
-    const buffer = synthesizeAffirmationBuffer(useCtx, script)
+    const trimmed = trimScriptToTtsLimit(script, voice.rate, TTS_MAX_SECONDS)
+    const buffer = synthesizeAffirmationBuffer(useCtx, trimmed, {
+      maxSeconds: TTS_MAX_SECONDS,
+    })
     if (!psychoEngine.isPlaying()) {
       await psychoEngine.start({ withDemoSources: false, context: useCtx })
     }
@@ -60,23 +109,24 @@ export function VoiceDeliveryPanel({ voice, onChange }: Props) {
     psychoEngine.setBusDb('voice', -32)
     psychoEngine.patch({ breath: { envelopeMaskDb: -18 } })
     await psychoEngine.injectVoiceBuffer(buffer, { loop: true })
-    return buffer
+    return { buffer, trimmed }
   }
 
   const generateNarratorAudio = async () => {
-    if (narratorOver || !voice.script.trim() || busy) return
+    if (narratorOver || ttsOver || !voice.script.trim() || busy) return
     setBusy(true)
-    setStatus('Generating Narrator audio…')
+    setStatus('Generating Narrator audio (≤ 2:00)…')
     try {
-      await injectToVoiceBus(voice.script)
+      const { trimmed } = await injectToVoiceBus(voice.script)
       voiceCloneService.speakNarrator({
-        text: voice.script,
+        text: trimmed,
         rate: voice.rate,
         pitch: voice.pitch,
         volume: voice.volume,
         profileId: 'local-soft',
+        maxMs: TTS_MAX_MS,
       })
-      setStatus('Narrator routed to Voice bus (−32 dBFS). Previewing…')
+      setStatus('Narrator on Voice bus (−32 dBFS), capped at 2 minutes.')
     } catch {
       setStatus('Could not generate Narrator audio.')
     } finally {
@@ -85,19 +135,20 @@ export function VoiceDeliveryPanel({ voice, onChange }: Props) {
   }
 
   const generateCloneAudio = async () => {
-    if (!voice.script.trim() || busy) return
+    if (ttsOver || !voice.script.trim() || busy) return
     setBusy(true)
-    setStatus('Generating clone TTS…')
+    setStatus('Generating clone TTS (≤ 2:00)…')
     try {
-      await injectToVoiceBus(voice.script)
+      const { trimmed } = await injectToVoiceBus(voice.script)
       voiceCloneService.speak({
-        text: voice.script,
+        text: trimmed,
         rate: voice.rate,
         pitch: voice.pitch,
         volume: voice.volume,
         profileId: voice.cloneProfileId,
+        maxMs: TTS_MAX_MS,
       })
-      setStatus('Clone voice routed to Voice bus (−32 dBFS). Previewing…')
+      setStatus('Clone voice on Voice bus (−32 dBFS), capped at 2 minutes.')
     } catch {
       setStatus('Could not generate clone audio.')
     } finally {
@@ -105,14 +156,24 @@ export function VoiceDeliveryPanel({ voice, onChange }: Props) {
     }
   }
 
+  const stopRecord = () => {
+    clearRecTimers()
+    const mr = (window as unknown as { __sxRec?: MediaRecorder }).__sxRec
+    if (mr && mr.state === 'recording') mr.stop()
+  }
+
   const startRecord = async () => {
     setRecError(null)
+    setRecElapsed(0)
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true })
       const mr = new MediaRecorder(stream)
       const chunks: BlobPart[] = []
-      mr.ondataavailable = (e) => chunks.push(e.data)
+      mr.ondataavailable = (e) => {
+        if (e.data.size > 0) chunks.push(e.data)
+      }
       mr.onstop = () => {
+        clearRecTimers()
         stream.getTracks().forEach((t) => t.stop())
         setRecording(false)
         const blob = new Blob(chunks, { type: mr.mimeType || 'audio/webm' })
@@ -123,17 +184,22 @@ export function VoiceDeliveryPanel({ voice, onChange }: Props) {
             if (!psychoEngine.isPlaying()) {
               await psychoEngine.start({ withDemoSources: false, context: ctx })
             }
-            const buffer = await decodeRecordingToBuffer(ctx, blob)
+            const raw = await decodeRecordingToBuffer(ctx, blob)
+            const buffer = truncateAudioBuffer(ctx, raw, RECORD_MAX_SECONDS)
             psychoEngine.setBusDb('voice', -32)
             psychoEngine.patch({ breath: { envelopeMaskDb: -18 } })
             await psychoEngine.injectVoiceBuffer(buffer, { loop: true })
             patch({ hasRecording: true })
-            setStatus('Recording on Voice bus (−32 dBFS).')
+            const secs = Math.min(RECORD_MAX_SECONDS, Math.round(buffer.duration))
+            setStatus(
+              `Recording on Voice bus (−32 dBFS) · ${formatClock(secs)} (max 30:00).`,
+            )
           } catch {
             setRecError('Could not decode recording into the Voice bus.')
           }
         })()
       }
+
       const ctx = new AudioContext()
       const src = ctx.createMediaStreamSource(stream)
       const an = ctx.createAnalyser()
@@ -150,18 +216,26 @@ export function VoiceDeliveryPanel({ voice, onChange }: Props) {
         if (mr.state === 'recording') requestAnimationFrame(tick)
         else void ctx.close()
       }
-      mr.start()
+
+      mr.start(1000)
       setRecording(true)
+      recStartedAt.current = Date.now()
       ;(window as unknown as { __sxRec?: MediaRecorder }).__sxRec = mr
       requestAnimationFrame(tick)
+
+      recTickTimer.current = window.setInterval(() => {
+        const elapsed = Math.floor((Date.now() - recStartedAt.current) / 1000)
+        setRecElapsed(Math.min(RECORD_MAX_SECONDS, elapsed))
+      }, 250)
+
+      // Hard stop at 30 minutes
+      recCapTimer.current = window.setTimeout(() => {
+        setStatus('Recording stopped at the 30-minute maximum.')
+        stopRecord()
+      }, RECORD_MAX_MS)
     } catch {
       setRecError('Microphone permission denied or unavailable.')
     }
-  }
-
-  const stopRecord = () => {
-    const mr = (window as unknown as { __sxRec?: MediaRecorder }).__sxRec
-    if (mr && mr.state === 'recording') mr.stop()
   }
 
   return (
@@ -191,17 +265,29 @@ export function VoiceDeliveryPanel({ voice, onChange }: Props) {
         <label className="block">
           <div className="mb-1 flex flex-wrap items-center justify-between gap-2">
             <span className="field-label mb-0">Affirmation script</span>
-            {voice.mode === 'narrator' ? (
-              <span
-                className={`text-xs font-semibold tabular-nums ${
-                  narratorOver ? 'text-[#fcd34d]' : 'text-[#6ee7b7]'
-                }`}
-              >
-                {words} / {NARRATOR_WORD_LIMIT} words
-              </span>
-            ) : (
-              <span className="text-xs tabular-nums text-muted">{words} words</span>
-            )}
+            <div className="flex flex-wrap items-center gap-2">
+              {voice.mode === 'narrator' && (
+                <span
+                  className={`text-xs font-semibold tabular-nums ${
+                    narratorOver ? 'text-[#fcd34d]' : 'text-[#6ee7b7]'
+                  }`}
+                >
+                  {words} / {NARRATOR_WORD_LIMIT} words
+                </span>
+              )}
+              {(voice.mode === 'narrator' || voice.mode === 'clone') && (
+                <span
+                  className={`text-xs font-semibold tabular-nums ${
+                    ttsOver ? 'text-[#fcd34d]' : 'text-muted'
+                  }`}
+                >
+                  ~{formatClock(ttsSeconds)} / {formatClock(TTS_MAX_SECONDS)} audio
+                </span>
+              )}
+              {voice.mode === 'record' && (
+                <span className="text-xs tabular-nums text-muted">{words} words</span>
+              )}
+            </div>
           </div>
           <textarea
             className="field-textarea min-h-[7rem]"
@@ -228,9 +314,39 @@ export function VoiceDeliveryPanel({ voice, onChange }: Props) {
         </div>
       )}
 
+      {ttsOver && (voice.mode === 'narrator' || voice.mode === 'clone') && (
+        <div className="rounded-xl border border-[color-mix(in_oklab,#fbbf24_40%,transparent)] bg-[color-mix(in_oklab,#fbbf24_10%,transparent)] px-3 py-3 text-sm text-ink">
+          <p>
+            {voice.mode === 'narrator' ? 'Narrator' : 'Voice Cloning'} TTS is limited to 2 minutes of
+            audio (~{formatClock(ttsSeconds)} estimated). Trim the script or use Self-Recording
+            (up to 30 minutes).
+          </p>
+          <button
+            type="button"
+            className="btn btn-teal mt-2 text-xs"
+            onClick={() =>
+              patch({ script: trimScriptToTtsLimit(voice.script, voice.rate, TTS_MAX_SECONDS) })
+            }
+          >
+            Trim to 2 Minutes
+          </button>
+        </div>
+      )}
+
       {voice.mode === 'record' && (
         <div className="space-y-3 rounded-xl border border-border bg-bg/40 p-4">
-          <h4 className="font-display text-sm font-semibold text-ink">Teleprompter</h4>
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <h4 className="font-display text-sm font-semibold text-ink">Teleprompter</h4>
+            <span
+              className={`text-xs font-semibold tabular-nums ${
+                recording && recElapsed >= RECORD_MAX_SECONDS - 30
+                  ? 'text-[#fcd34d]'
+                  : 'text-muted'
+              }`}
+            >
+              {formatClock(recElapsed)} / {formatClock(RECORD_MAX_SECONDS)}
+            </span>
+          </div>
           <div className="max-h-48 overflow-y-auto rounded-lg border border-border bg-[var(--panel)] px-4 py-3">
             <p className="whitespace-pre-wrap font-display text-base leading-relaxed text-ink">
               {voice.script.trim() || 'Add or generate a script to read while recording.'}
@@ -245,6 +361,12 @@ export function VoiceDeliveryPanel({ voice, onChange }: Props) {
               }}
             />
           </div>
+          <div className="h-1.5 overflow-hidden rounded-full bg-bg">
+            <div
+              className="h-full rounded-full bg-[color-mix(in_oklab,var(--accent)_70%,transparent)]"
+              style={{ width: `${(recElapsed / RECORD_MAX_SECONDS) * 100}%` }}
+            />
+          </div>
           {recording ? (
             <button type="button" className="btn btn-primary" onClick={stopRecord}>
               Stop recording
@@ -254,6 +376,9 @@ export function VoiceDeliveryPanel({ voice, onChange }: Props) {
               Record to Voice bus
             </button>
           )}
+          <p className="text-[11px] text-muted">
+            Recording automatically stops at 30:00. Longer takes are truncated.
+          </p>
           {voice.hasRecording && (
             <p className="text-xs text-[#6ee7b7]">Recording captured and routed to Voice bus.</p>
           )}
@@ -279,7 +404,7 @@ export function VoiceDeliveryPanel({ voice, onChange }: Props) {
           <button
             type="button"
             className="btn btn-primary"
-            disabled={!voice.script.trim() || busy}
+            disabled={!voice.script.trim() || busy || ttsOver}
             onClick={() => void generateCloneAudio()}
           >
             {busy ? 'Generating…' : 'Generate Clone Audio'}
@@ -305,7 +430,7 @@ export function VoiceDeliveryPanel({ voice, onChange }: Props) {
           <button
             type="button"
             className="btn btn-primary"
-            disabled={narratorOver || !voice.script.trim() || busy}
+            disabled={narratorOver || ttsOver || !voice.script.trim() || busy}
             onClick={() => void generateNarratorAudio()}
           >
             {busy ? 'Generating…' : 'Generate Narrator Audio'}

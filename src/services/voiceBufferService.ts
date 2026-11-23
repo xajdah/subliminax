@@ -5,16 +5,18 @@
  */
 
 import { countWords } from './scriptGenerator'
+import { TTS_MAX_SECONDS, TTS_SECONDS_PER_WORD } from './voiceLimits'
 
-/** Soft whisper-bed buffer sized to script length (~2.8 words/sec). */
+/** Soft whisper-bed buffer sized to script length, hard-capped for TTS. */
 export function synthesizeAffirmationBuffer(
   ctx: BaseAudioContext,
   script: string,
-  opts?: { secondsPerWord?: number },
+  opts?: { secondsPerWord?: number; maxSeconds?: number },
 ): AudioBuffer {
   const words = Math.max(1, countWords(script))
-  const spw = opts?.secondsPerWord ?? 0.36
-  const duration = Math.min(90, Math.max(2.5, words * spw))
+  const spw = opts?.secondsPerWord ?? TTS_SECONDS_PER_WORD
+  const maxSec = opts?.maxSeconds ?? TTS_MAX_SECONDS
+  const duration = Math.min(maxSec, Math.max(2.5, words * spw))
   const sr = ctx.sampleRate
   const len = Math.floor(sr * duration)
   const buffer = ctx.createBuffer(2, len, sr)
