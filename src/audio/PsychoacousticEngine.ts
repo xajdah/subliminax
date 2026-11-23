@@ -219,7 +219,7 @@ export class PsychoacousticEngine {
 
     // Music: soft pad tone
     this.musicGain = ctx.createGain()
-    this.musicGain.gain.value = 0.2
+    this.musicGain.gain.value = 0.45
     this.musicOsc = ctx.createOscillator()
     this.musicOsc.type = 'triangle'
     this.musicOsc.frequency.value = 110
@@ -231,7 +231,7 @@ export class PsychoacousticEngine {
       this.noiseNode = new AudioWorkletNode(ctx, NOISE_WORKLET_NAME)
       this.noiseNode.port.postMessage({ color: this.state.soundscapeNoise })
       const ng = ctx.createGain()
-      ng.gain.value = 0.25
+      ng.gain.value = 0.4
       this.noiseNode.connect(ng).connect(b.soundscape.input)
     } catch {
       /* fallback silent */
@@ -242,7 +242,7 @@ export class PsychoacousticEngine {
 
     // Voice: soft carrier (stands in for affirmations in studio demo)
     this.voiceGain = ctx.createGain()
-    this.voiceGain.gain.value = 0.15
+    this.voiceGain.gain.value = 0.35
     this.voiceOsc = ctx.createOscillator()
     this.voiceOsc.type = 'sine'
     this.voiceOsc.frequency.value = 220
@@ -258,7 +258,7 @@ export class PsychoacousticEngine {
     if (f.mode === 'off') return
 
     this.freqGain = ctx.createGain()
-    this.freqGain.gain.value = 0.2
+    this.freqGain.gain.value = 0.4
     const beat =
       this.state.illusions.chirpDurationMinutes > 0
         ? this.illusions?.getLiveBeatHz() ?? f.beatHz

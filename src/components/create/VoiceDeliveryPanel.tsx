@@ -105,9 +105,9 @@ export function VoiceDeliveryPanel({ voice, onChange }: Props) {
     if (!psychoEngine.isPlaying()) {
       await psychoEngine.start({ withDemoSources: false, context: useCtx })
     }
-    // Calibrated Voice bus default is −32 dBFS; mask delta −18 dB
-    psychoEngine.setBusDb('voice', -32)
-    psychoEngine.patch({ breath: { envelopeMaskDb: -18 } })
+    // Audible studio preview: voice at −18 dBFS (still under music), mask −12 dB
+    psychoEngine.setBusDb('voice', -18)
+    psychoEngine.patch({ breath: { envelopeMaskDb: -12 }, masterDb: 0 })
     await psychoEngine.injectVoiceBuffer(buffer, { loop: true })
     return { buffer, trimmed }
   }
@@ -122,11 +122,11 @@ export function VoiceDeliveryPanel({ voice, onChange }: Props) {
         text: trimmed,
         rate: voice.rate,
         pitch: voice.pitch,
-        volume: voice.volume,
+        volume: Math.min(1, Math.max(0.85, voice.volume)),
         profileId: 'local-soft',
         maxMs: TTS_MAX_MS,
       })
-      setStatus('Narrator on Voice bus (−32 dBFS), capped at 2 minutes.')
+      setStatus('Narrator on Voice bus (−18 dBFS audition), capped at 2 minutes.')
     } catch {
       setStatus('Could not generate Narrator audio.')
     } finally {
@@ -144,11 +144,11 @@ export function VoiceDeliveryPanel({ voice, onChange }: Props) {
         text: trimmed,
         rate: voice.rate,
         pitch: voice.pitch,
-        volume: voice.volume,
+        volume: Math.min(1, Math.max(0.85, voice.volume)),
         profileId: voice.cloneProfileId,
         maxMs: TTS_MAX_MS,
       })
-      setStatus('Clone voice on Voice bus (−32 dBFS), capped at 2 minutes.')
+      setStatus('Clone voice on Voice bus (−18 dBFS audition), capped at 2 minutes.')
     } catch {
       setStatus('Could not generate clone audio.')
     } finally {
@@ -186,13 +186,13 @@ export function VoiceDeliveryPanel({ voice, onChange }: Props) {
             }
             const raw = await decodeRecordingToBuffer(ctx, blob)
             const buffer = truncateAudioBuffer(ctx, raw, RECORD_MAX_SECONDS)
-            psychoEngine.setBusDb('voice', -32)
-            psychoEngine.patch({ breath: { envelopeMaskDb: -18 } })
+            psychoEngine.setBusDb('voice', -18)
+            psychoEngine.patch({ breath: { envelopeMaskDb: -12 }, masterDb: 0 })
             await psychoEngine.injectVoiceBuffer(buffer, { loop: true })
             patch({ hasRecording: true })
             const secs = Math.min(RECORD_MAX_SECONDS, Math.round(buffer.duration))
             setStatus(
-              `Recording on Voice bus (−32 dBFS) · ${formatClock(secs)} (max 30:00).`,
+              `Recording on Voice bus (−18 dBFS audition) · ${formatClock(secs)} (max 30:00).`,
             )
           } catch {
             setRecError('Could not decode recording into the Voice bus.')

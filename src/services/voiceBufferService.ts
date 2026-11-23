@@ -36,7 +36,8 @@ export function synthesizeAffirmationBuffer(
       const formant =
         Math.sin(t * 2 * Math.PI * (180 + ch * 12)) * 0.15 +
         Math.sin(t * 2 * Math.PI * (420 + ch * 8)) * 0.08
-      data[i] = (pink * 0.55 + formant) * env * 0.22
+      // Louder whisper bed for studio audition (cloud desktop + laptop speakers)
+      data[i] = (pink * 0.55 + formant) * env * 0.72
     }
   }
   return buffer

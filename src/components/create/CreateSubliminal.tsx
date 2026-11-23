@@ -179,7 +179,7 @@ export function CreateSubliminal({ onHome }: Props) {
           ■
         </button>
         <span className="font-display tabular-nums">{formatElapsed(elapsed)}</span>
-        <label className="ml-auto flex min-w-[10rem] items-center gap-2">
+        <label className="ml-auto flex min-w-[12rem] items-center gap-2">
           <span className="field-label mb-0">Master</span>
           <input
             className="field-range"
@@ -194,8 +194,15 @@ export function CreateSubliminal({ onHome }: Props) {
               engine.setMasterVolume(v)
             }}
           />
+          <span className="text-[11px] tabular-nums text-muted">
+            {Math.round(session.masterVolume * 100)}%
+          </span>
         </label>
       </div>
+      <p className="mb-4 text-[11px] text-muted">
+        Tip: drag Master up if the mix feels quiet — studio preview is boosted for audition, but
+        cloud-desktop audio can still be soft.
+      </p>
 
       {/* Steps */}
       {session.step === 'intent' && (

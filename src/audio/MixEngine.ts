@@ -31,7 +31,7 @@ export class MixEngine {
   private spatialPan: StereoPannerNode | null = null
   private hrtf: PannerNode | null = null
   private transport: TransportState = 'stopped'
-  private masterVolume = 0.55
+  private masterVolume = 0.92
   private listeners = new Set<Listener>()
   private mood: MoodSynthHandle | null = null
   private ambients = new Map<string, AmbientHandle>()
@@ -137,6 +137,7 @@ export class MixEngine {
   async play(session: CreateSession) {
     this.session = session
     const ctx = this.ensure()
+    this.setMasterVolume(session.masterVolume)
     if (ctx.state === 'suspended') await ctx.resume()
     if (this.transport === 'playing') return
     if (this.transport === 'paused') {
@@ -359,9 +360,10 @@ export class MixEngine {
     const rate = voice.mode === 'narrator' && narrator ? narrator.rate : voice.rate
     const pitch = voice.mode === 'narrator' && narrator ? narrator.pitch : voice.pitch
     const profileId = voice.mode === 'clone' ? voice.cloneProfileId : 'local-soft'
-    const vol = this.session?.psycho.multiLayerStack
-      ? voice.volume * 0.55
-      : voice.volume * 0.35
+    const vol = Math.min(
+      1,
+      this.session?.psycho.multiLayerStack ? voice.volume * 0.95 : voice.volume * 0.85,
+    )
     // Narrator + Clone: spoken audio hard-capped at 2 minutes
     const spokenText = trimScriptToTtsLimit(voice.script, rate)
 

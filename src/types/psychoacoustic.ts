@@ -87,10 +87,11 @@ export interface PsychoacousticState {
 
 export const DEFAULT_PSYCHO: PsychoacousticState = {
   buses: {
-    music: -12,
-    soundscape: -14,
-    frequency: -20,
-    voice: -32,
+    // Studio audition levels (still voice-under-music; not full club loudness)
+    music: -8,
+    soundscape: -10,
+    frequency: -14,
+    voice: -18,
   },
   spatial: {
     externalizer: 0.35,
@@ -140,7 +141,8 @@ export const DEFAULT_PSYCHO: PsychoacousticState = {
     bilateralWeave: 0,
   },
   soundscapeNoise: 'pink',
-  masterDb: -6,
+  /** Unity master for audible cloud-desktop / laptop preview */
+  masterDb: 0,
   isolateVoice: false,
   checkMasking: false,
   liveBeatHz: 6,
