@@ -141,7 +141,6 @@ export function AiScriptArchitect({
                     onClick={() => setTab(f.id)}
                   >
                     {f.label}
-                    {activeFormat === f.id ? ' · Active' : ''}
                   </button>
                 ))}
               </div>
@@ -157,7 +156,14 @@ export function AiScriptArchitect({
                   >
                     <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
                       <div>
-                        <h4 className="font-display text-sm font-semibold text-ink">{f.label}</h4>
+                        <h4 className="font-display text-sm font-semibold text-ink">
+                          {f.label}
+                          {activeFormat === f.id ? (
+                            <span className="ml-2 text-[11px] font-medium text-accent-soft">
+                              in editor
+                            </span>
+                          ) : null}
+                        </h4>
                         <p className="text-[11px] text-muted">{f.hint}</p>
                       </div>
                       <WordBadge count={words} />
