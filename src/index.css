@@ -535,18 +535,9 @@ body {
   filter: blur(8px);
 }
 
+/* Entrance only — no float, so concentric rings stay perfectly still */
 .hero-mark-img {
-  animation: soft-rise 700ms ease both, hero-float 7s ease-in-out 700ms infinite;
-}
-
-@keyframes hero-float {
-  0%,
-  100% {
-    transform: translateY(0);
-  }
-  50% {
-    transform: translateY(-10px);
-  }
+  animation: soft-rise 700ms ease both;
 }
 
 @media (prefers-reduced-motion: reduce) {

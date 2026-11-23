@@ -36,7 +36,7 @@ function DnaTile({ offsetY }: { offsetY: number }) {
         d={HELIX.left}
         fill="none"
         stroke="url(#sxDnaGrad)"
-        strokeWidth="3.2"
+        strokeWidth="3.8"
         strokeLinecap="round"
         strokeLinejoin="round"
       />
@@ -44,10 +44,10 @@ function DnaTile({ offsetY }: { offsetY: number }) {
         d={HELIX.right}
         fill="none"
         stroke="url(#sxDnaGrad)"
-        strokeWidth="3.2"
+        strokeWidth="3.8"
         strokeLinecap="round"
         strokeLinejoin="round"
-        opacity="0.85"
+        opacity="0.9"
       />
       {HELIX.rungs.map((r, i) => (
         <line
@@ -57,9 +57,9 @@ function DnaTile({ offsetY }: { offsetY: number }) {
           x2={r.x2}
           y2={r.y2}
           stroke="url(#sxDnaGrad)"
-          strokeWidth="2.1"
+          strokeWidth="2.6"
           strokeLinecap="round"
-          opacity="0.9"
+          opacity="0.95"
         />
       ))}
     </g>
@@ -119,9 +119,10 @@ export function SubliminaXLogo({
               >
                 <defs>
                   <linearGradient id="sxDnaGrad" x1="0%" y1="0%" x2="0%" y2="100%">
-                    <stop offset="0%" stopColor="#C9854A" />
-                    <stop offset="45%" stopColor="#5BB8A0" />
-                    <stop offset="100%" stopColor="#1AA6A0" />
+                    <stop offset="0%" stopColor="#E8A86A" />
+                    <stop offset="35%" stopColor="#C9854A" />
+                    <stop offset="70%" stopColor="#7A9E72" />
+                    <stop offset="100%" stopColor="#2A9B8F" />
                   </linearGradient>
                 </defs>
                 <DnaTile offsetY={0} />
@@ -142,9 +143,10 @@ export function SubliminaXLogo({
               >
                 <defs>
                   <linearGradient id="sxFreqGrad" x1="0%" y1="0%" x2="100%" y2="0%">
-                    <stop offset="0%" stopColor="#D4924E" />
-                    <stop offset="55%" stopColor="#7BC4A8" />
-                    <stop offset="100%" stopColor="#14B8A6" />
+                    <stop offset="0%" stopColor="#E8A86A" />
+                    <stop offset="40%" stopColor="#C9854A" />
+                    <stop offset="75%" stopColor="#6BA892" />
+                    <stop offset="100%" stopColor="#2A9B8F" />
                   </linearGradient>
                 </defs>
                 <g transform="translate(0 32)">
@@ -152,7 +154,7 @@ export function SubliminaXLogo({
                     d={ECG_TILE}
                     fill="none"
                     stroke="url(#sxFreqGrad)"
-                    strokeWidth="2.6"
+                    strokeWidth="3.1"
                     strokeLinecap="round"
                     strokeLinejoin="round"
                   />
@@ -160,7 +162,7 @@ export function SubliminaXLogo({
                     d={ECG_TILE}
                     fill="none"
                     stroke="url(#sxFreqGrad)"
-                    strokeWidth="2.6"
+                    strokeWidth="3.1"
                     strokeLinecap="round"
                     strokeLinejoin="round"
                     transform="translate(320 0)"
