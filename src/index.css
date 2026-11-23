@@ -490,19 +490,20 @@ body {
   }
 }
 
+/* Mostly vertical pulse — keep arms joined to the DNA X */
 @keyframes sx-freq-live {
   0%,
   100% {
     transform: translateX(0) scaleY(1);
   }
-  22% {
-    transform: translateX(3.5%) scaleY(1.18);
+  25% {
+    transform: translateX(0.6%) scaleY(1.16);
   }
-  48% {
-    transform: translateX(-4%) scaleY(0.86);
+  50% {
+    transform: translateX(-0.6%) scaleY(0.88);
   }
-  72% {
-    transform: translateX(2.5%) scaleY(1.1);
+  75% {
+    transform: translateX(0.4%) scaleY(1.08);
   }
 }
 
