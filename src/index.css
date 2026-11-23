@@ -376,8 +376,17 @@ body {
 }
 
 .sx-logo--nav {
-  width: 2.75rem;
-  height: 2.75rem;
+  width: 2.85rem;
+  height: 2.85rem;
+}
+
+.sx-logo--nav .sx-logo-exact-img {
+  filter: brightness(1.35) contrast(1.08) saturate(1.12);
+  animation: none;
+}
+
+.sx-logo--nav .sx-logo-exact-shimmer {
+  display: none;
 }
 
 .sx-logo--hero {
