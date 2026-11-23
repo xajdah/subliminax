@@ -367,7 +367,7 @@ body {
   color: transparent;
 }
 
-/* —— Exact Subliminax logo (rings static; DNA spiral + live frequency) —— */
+/* —— Exact logo: rings still; DNA/freq layers from the same artwork —— */
 .sx-logo-exact,
 .sx-logo-live {
   position: relative;
@@ -392,28 +392,45 @@ body {
 }
 
 .sx-logo-exact-img,
-.sx-logo-rings {
+.sx-logo-static-exact,
+.sx-logo-rings,
+.sx-dna-img,
+.sx-freq-img {
   display: block;
   width: 100%;
   height: 100%;
   object-fit: contain;
   user-select: none;
-}
-
-/* Core: DNA + frequency only — rings stay still */
-.sx-logo-core {
   pointer-events: none;
-  position: absolute;
-  inset: 27.5%;
-  border-radius: 50%;
-  overflow: hidden;
 }
 
+/* Default: hide static exact; show layered motion (rest pose == exact) */
+.sx-logo-static-exact {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  visibility: hidden;
+}
+
+.sx-logo-motion {
+  position: relative;
+  width: 100%;
+  height: 100%;
+}
+
+.sx-logo-rings {
+  position: relative;
+  z-index: 1;
+}
+
+/* DNA — slow spiral; 0° and 360° match the exact layer */
 .sx-dna-stage {
   position: absolute;
-  inset: 2% 24% 6%;
-  perspective: 640px;
-  perspective-origin: 50% 48%;
+  inset: 0;
+  z-index: 2;
+  perspective: 900px;
+  perspective-origin: 50% 50%;
+  border-radius: 50%;
   overflow: hidden;
 }
 
@@ -422,51 +439,37 @@ body {
   height: 100%;
   transform-origin: 50% 50%;
   transform-style: preserve-3d;
-  animation: sx-dna-spiral 6s linear infinite;
-}
-
-.sx-dna-drift {
-  width: 100%;
-  height: 200%;
-  animation: sx-dna-drift 3.6s linear infinite;
+  animation: sx-dna-spiral 14s linear infinite;
   will-change: transform;
 }
 
-.sx-dna {
-  display: block;
+.sx-dna-img {
   width: 100%;
   height: 100%;
 }
 
+/* Frequency — scroll exactly one logo width so the loop lands on the exact pose */
 .sx-freq-stage {
   position: absolute;
-  left: -8%;
-  right: -8%;
-  top: 40%;
-  height: 24%;
-  z-index: 2;
+  inset: 0;
+  z-index: 3;
+  border-radius: 50%;
   overflow: hidden;
 }
 
-.sx-freq-pulse {
-  width: 100%;
-  height: 100%;
-  transform-origin: 50% 50%;
-  animation: sx-freq-pulse 1.1s ease-in-out infinite;
-}
-
 .sx-freq-scroll {
+  position: absolute;
+  inset: 0;
   width: 200%;
   height: 100%;
-  animation: sx-freq-scroll 2.2s linear infinite;
+  animation: sx-freq-scroll 5.5s linear infinite;
   will-change: transform;
 }
 
-.sx-freq {
-  display: block;
+.sx-freq-img {
   width: 100%;
   height: 100%;
-  filter: drop-shadow(0 0 5px rgba(20, 184, 166, 0.28));
+  max-width: none;
 }
 
 @keyframes sx-dna-spiral {
@@ -475,15 +478,6 @@ body {
   }
   to {
     transform: rotateY(360deg);
-  }
-}
-
-@keyframes sx-dna-drift {
-  from {
-    transform: translateY(0);
-  }
-  to {
-    transform: translateY(-50%);
   }
 }
 
@@ -496,27 +490,20 @@ body {
   }
 }
 
-@keyframes sx-freq-pulse {
-  0%,
-  100% {
-    transform: scaleY(1);
-  }
-  35% {
-    transform: scaleY(1.22);
-  }
-  55% {
-    transform: scaleY(0.88);
-  }
-  75% {
-    transform: scaleY(1.1);
-  }
-}
-
+/* Static page / reduced motion → original exact logo, no redesign */
 @media (prefers-reduced-motion: reduce) {
+  .sx-logo-live .sx-logo-motion {
+    display: none !important;
+  }
+
+  .sx-logo-live .sx-logo-static-exact {
+    position: relative;
+    opacity: 1;
+    visibility: visible;
+  }
+
   .sx-dna-spiral,
-  .sx-dna-drift,
-  .sx-freq-scroll,
-  .sx-freq-pulse {
+  .sx-freq-scroll {
     animation: none !important;
   }
 }
