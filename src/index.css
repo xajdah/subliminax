@@ -402,38 +402,42 @@ body {
   overflow: visible;
 }
 
-/* Rings — staggered outward ripple */
+/* Rings — staggered outward ripple (inner → outer) */
 .sx-v-ring {
   transform-origin: 256px 256px;
   transform-box: fill-box;
-  animation: sx-ring-ripple 5.5s ease-in-out infinite;
+  animation: sx-ring-ripple 4.8s ease-out infinite;
 }
 
-.sx-v-ring-1 {
+.sx-v-ring-5 {
   animation-delay: 0s;
 }
-.sx-v-ring-2 {
-  animation-delay: 0.18s;
+.sx-v-ring-4 {
+  animation-delay: 0.35s;
 }
 .sx-v-ring-3 {
-  animation-delay: 0.36s;
+  animation-delay: 0.7s;
 }
-.sx-v-ring-4 {
-  animation-delay: 0.54s;
+.sx-v-ring-2 {
+  animation-delay: 1.05s;
 }
-.sx-v-ring-5 {
-  animation-delay: 0.72s;
+.sx-v-ring-1 {
+  animation-delay: 1.4s;
 }
 
 @keyframes sx-ring-ripple {
-  0%,
+  0% {
+    transform: scale(1);
+    opacity: 0.75;
+  }
+  35% {
+    transform: scale(1.045);
+    opacity: 1;
+  }
+  70%,
   100% {
     transform: scale(1);
-    opacity: 0.92;
-  }
-  50% {
-    transform: scale(1.028);
-    opacity: 1;
+    opacity: 0.82;
   }
 }
 
