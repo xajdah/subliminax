@@ -1,4 +1,4 @@
-/** Buffer-based colored noise generators */
+/** Buffer-based colored noise */
 
 export type NoiseColor = 'white' | 'pink' | 'brown'
 
@@ -20,7 +20,9 @@ export function createNoiseBuffer(
   const length = Math.max(1, Math.floor(ctx.sampleRate * durationSec))
   const buffer = ctx.createBuffer(1, length, ctx.sampleRate)
   const data = buffer.getChannelData(0)
-  const rand = mulberry32(color === 'pink' ? 0x50494e4b : color === 'brown' ? 0x42524f57 : 0x57484954)
+  const rand = mulberry32(
+    color === 'pink' ? 0x50494e4b : color === 'brown' ? 0x42524f57 : 0x57484954,
+  )
 
   if (color === 'white') {
     for (let i = 0; i < length; i++) data[i] = rand() * 2 - 1
@@ -28,14 +30,13 @@ export function createNoiseBuffer(
   }
 
   if (color === 'pink') {
-    // Paul Kellet refined pink noise
-    let b0 = 0
-    let b1 = 0
-    let b2 = 0
-    let b3 = 0
-    let b4 = 0
-    let b5 = 0
-    let b6 = 0
+    let b0 = 0,
+      b1 = 0,
+      b2 = 0,
+      b3 = 0,
+      b4 = 0,
+      b5 = 0,
+      b6 = 0
     for (let i = 0; i < length; i++) {
       const white = rand() * 2 - 1
       b0 = 0.99886 * b0 + white * 0.0555179
@@ -50,7 +51,6 @@ export function createNoiseBuffer(
     return buffer
   }
 
-  // Brown (Brownian) noise
   let last = 0
   for (let i = 0; i < length; i++) {
     const white = rand() * 2 - 1
@@ -60,12 +60,13 @@ export function createNoiseBuffer(
   return buffer
 }
 
-export function createLoopingNoiseSource(
+export function startLoopingNoise(
   ctx: AudioContext,
   color: NoiseColor,
 ): AudioBufferSourceNode {
   const source = ctx.createBufferSource()
   source.buffer = createNoiseBuffer(ctx, color)
   source.loop = true
+  source.start()
   return source
 }

@@ -1,107 +1,65 @@
 import { useEffect, useState } from 'react'
-import { getMoodPreset } from '../presets/moods'
 import { useAudioEngine } from '../hooks/useAudioEngine'
 import { useSessionTimer } from '../hooks/useSessionTimer'
 import { useTheme } from '../hooks/useTheme'
-import type {
-  AffirmationTrack,
-  MatrixHaloConfig,
-  MoodId,
-  SessionNotes,
-  StudioMode,
-  XenapseConfig,
+import {
+  createDefaultStudioState,
+  INTENT_PRESETS,
+  type AppSurface,
+  type BrainwaveBand,
+  type IntentId,
+  type StudioState,
+  type VisualMode,
 } from '../types/studio'
-import { MatrixHaloPanel } from './matrixhalo/MatrixHaloPanel'
-import { ModeToggle } from './ModeToggle'
-import { MoodPresets } from './MoodPresets'
-import { REMscribePanel } from './remscribe/REMscribePanel'
+import { AudioLabRack } from './rack/AudioLabRack'
+import { SessionMixer } from './mixer/SessionMixer'
 import { ThemeToggle } from './ThemeToggle'
 import { TransportBar } from './TransportBar'
-import { XenapsePanel } from './xenapse/XenapsePanel'
-
-const DEFAULT_XENAPSE: XenapseConfig = {
-  mode: 'binaural',
-  carrierHz: 200,
-  beatHz: 10,
-  pulseHz: 8,
-  toneGain: 0.15,
-  ambient: 'pink',
-  ambientGain: 0.2,
-  ambientFilterHz: 1000,
-  useSolfeggio: false,
-  solfeggioHz: null,
-}
-
-const DEFAULT_HALO: MatrixHaloConfig = {
-  intensity: 1,
-  reduceMotion: false,
-  showRings: true,
-  showCymatics: true,
-}
-
-function makeTrack(text: string, i: number): AffirmationTrack {
-  return {
-    id: `seed-${i}`,
-    text,
-    volume: 0.7,
-    pan: 0,
-    rate: 0.95,
-    pitch: 1,
-    loop: true,
-    muted: false,
-    subliminal: i > 0,
-  }
-}
+import { MasterVisualizer } from './visualizer/MasterVisualizer'
 
 export function StudioShell() {
   const { theme, toggleTheme } = useTheme()
   const engine = useAudioEngine()
+  const [state, setState] = useState<StudioState>(() => {
+    const s = createDefaultStudioState()
+    if (typeof window !== 'undefined' && window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+      s.visual.reduceMotion = true
+    }
+    return s
+  })
+  const [rackOpen, setRackOpen] = useState(true)
+
   const elapsedMs = useSessionTimer(engine.transport)
 
-  const [studioMode, setStudioMode] = useState<StudioMode>('simple')
-  const [moodId, setMoodId] = useState<MoodId | null>('focus')
-  const [xenapse, setXenapse] = useState<XenapseConfig>(DEFAULT_XENAPSE)
-  const [halo, setHalo] = useState<MatrixHaloConfig>(() => {
-    const prefersReduce =
-      typeof window !== 'undefined' &&
-      window.matchMedia('(prefers-reduced-motion: reduce)').matches
-    return { ...DEFAULT_HALO, reduceMotion: prefersReduce }
-  })
-  const [affirmations, setAffirmations] = useState<AffirmationTrack[]>(() =>
-    (getMoodPreset('focus')?.sampleAffirmations ?? []).map(makeTrack),
-  )
-  const [notes, setNotes] = useState<SessionNotes>({
-    title: 'Focus session',
-    body: '',
-    updatedAt: Date.now(),
-  })
-
-  // Sync engine params
   useEffect(() => {
-    engine.setXenapseConfig(xenapse)
-  }, [xenapse, engine.setXenapseConfig])
+    setState((s) => ({ ...s, clock: { ...s.clock, elapsedMs }, transport: engine.transport }))
+  }, [elapsedMs, engine.transport])
 
   useEffect(() => {
-    engine.setAffirmations(affirmations)
-  }, [affirmations, engine.setAffirmations])
+    engine.syncFromState({ ...state, clock: { ...state.clock, elapsedMs } })
+    engine.updateElapsed(elapsedMs)
+  }, [state, elapsedMs, engine.syncFromState, engine.updateElapsed])
 
   useEffect(() => {
-    engine.setMasterVolume(engine.masterVolume)
-  }, [])
+    engine.setMasterVolume(state.masterVolume)
+  }, [state.masterVolume, engine.setMasterVolume])
 
-  const applyMood = (id: MoodId) => {
-    const preset = getMoodPreset(id)
-    if (!preset) return
-    setMoodId(id)
-    setXenapse((prev) => ({ ...prev, ...preset.xenapse }))
-    engine.setMasterVolume(preset.masterVolume)
-    setAffirmations(preset.sampleAffirmations.map(makeTrack))
-    setNotes((n) => ({
-      ...n,
-      title: `${preset.label} session`,
-      updatedAt: Date.now(),
+  const patch = (p: Partial<StudioState>) => setState((s) => ({ ...s, ...p }))
+
+  const applyIntent = (id: IntentId) => {
+    const intent = INTENT_PRESETS.find((i) => i.id === id)
+    if (!intent) return
+    setState((s) => ({
+      ...s,
+      intentId: id,
+      carrier: { ...s.carrier, hz: intent.carrierHz, band: null },
+      soundscape: { ...s.soundscape, id: intent.soundscape },
+      clock: { ...s.clock, lengthMinutes: intent.lengthMinutes },
+      affirmations: { lines: [...intent.affirmations], activeIndex: 0 },
     }))
   }
+
+  const setSurface = (surface: AppSurface) => patch({ surface })
 
   return (
     <div className="mx-auto flex min-h-screen max-w-7xl flex-col gap-4 px-4 py-5 sm:px-6 lg:px-8">
@@ -112,70 +70,158 @@ export function StudioShell() {
             <h1 className="font-display text-2xl font-extrabold tracking-tight text-ink sm:text-[1.75rem]">
               Subliminax
             </h1>
-            <p className="mt-0.5 truncate text-sm text-muted">
-              Psychoacoustic & subliminal soundtrack studio
-            </p>
+            <p className="mt-0.5 truncate text-sm text-muted">Studio — build your session</p>
           </div>
         </div>
         <div className="ml-auto flex flex-wrap items-center gap-2">
-          <ModeToggle mode={studioMode} onChange={setStudioMode} />
+          <div className="inline-flex rounded-xl border border-border bg-bg/40 p-1" role="group" aria-label="Surface">
+            <button
+              type="button"
+              className="chip chip-teal border-0"
+              data-active={state.surface === 'simple'}
+              onClick={() => setSurface('simple')}
+            >
+              Simple
+            </button>
+            <button
+              type="button"
+              className="chip chip-teal border-0"
+              data-active={state.surface === 'studio'}
+              onClick={() => setSurface('studio')}
+            >
+              Studio
+            </button>
+          </div>
           <ThemeToggle theme={theme} onToggle={toggleTheme} />
         </div>
       </header>
 
       <TransportBar
         transport={engine.transport}
-        masterVolume={engine.masterVolume}
+        masterVolume={state.masterVolume}
         elapsedMs={elapsedMs}
+        lengthMinutes={state.clock.lengthMinutes}
         onPlay={engine.play}
         onPause={engine.pause}
         onStop={engine.stop}
-        onVolume={engine.setMasterVolume}
+        onVolume={(v) => patch({ masterVolume: v })}
+        onLength={(m) =>
+          patch({ clock: { ...state.clock, lengthMinutes: m } })
+        }
       />
 
-      <MoodPresets activeId={moodId} onSelect={applyMood} />
+      <MasterVisualizer
+        analyser={engine.analyser}
+        bed={engine.bedAnalyser}
+        carrier={engine.carrierAnalyser}
+        voice={engine.voiceAnalyser}
+        visual={
+          state.lab.xrayFocus ? { ...state.visual, mode: 'xray' } : state.visual
+        }
+        playing={engine.transport === 'playing'}
+        xrayFocus={state.lab.xrayFocus}
+      />
 
-      {studioMode === 'simple' ? (
-        <div className="grid flex-1 gap-4 lg:grid-cols-2">
-          <XenapsePanel config={xenapse} compact onChange={setXenapse} />
-          <div className="flex flex-col gap-4">
-            <REMscribePanel
-              tracks={affirmations}
-              notes={notes}
-              speechSupported={engine.speechSupported}
-              compact
-              onChange={setAffirmations}
-              onNotesChange={setNotes}
-            />
-            <MatrixHaloPanel
-              config={halo}
-              getAnalyser={engine.getAnalyser}
-              transportPlaying={engine.transport === 'playing'}
-              onChange={setHalo}
-            />
-          </div>
+      <div className="flex flex-wrap items-center gap-2">
+        <span className="field-label mb-0">Visual</span>
+        {(['cymatics', 'aura', 'xray', 'off'] as VisualMode[]).map((m) => (
+          <button
+            key={m}
+            type="button"
+            className="chip"
+            data-active={state.visual.mode === m && !state.lab.xrayFocus}
+            onClick={() =>
+              patch({
+                visual: { ...state.visual, mode: m },
+                lab: { ...state.lab, xrayFocus: m === 'xray' },
+              })
+            }
+          >
+            {m}
+          </button>
+        ))}
+        <button
+          type="button"
+          className="chip"
+          data-active={state.visual.reduceMotion}
+          onClick={() =>
+            patch({ visual: { ...state.visual, reduceMotion: !state.visual.reduceMotion } })
+          }
+        >
+          Reduce motion
+        </button>
+      </div>
+
+      <section className="panel animate-rise p-4">
+        <h2 className="panel-title text-lg">Intents</h2>
+        <p className="mb-3 text-sm text-muted">
+          Drafts only — rewrite the words. Sleep, anxiety, confidence, abundance.
+        </p>
+        <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+          {INTENT_PRESETS.map((intent) => (
+            <button
+              key={intent.id}
+              type="button"
+              className="chip flex min-h-[4.25rem] flex-col items-start justify-center px-3 py-2 text-left"
+              data-active={state.intentId === intent.id}
+              onClick={() => applyIntent(intent.id)}
+            >
+              <span className="font-display text-sm font-bold">{intent.label}</span>
+              <span className="text-[0.7rem] leading-snug text-muted">{intent.description}</span>
+            </button>
+          ))}
+        </div>
+      </section>
+
+      {state.surface === 'simple' ? (
+        <div className="panel animate-rise flex flex-col items-center gap-4 p-8 text-center">
+          <p className="max-w-md text-muted">
+            One-press listening with your current intent defaults. Open Studio anytime to change
+            carrier, soundscape, words, voice, length, or audio lab controls.
+          </p>
+          <button type="button" className="btn btn-primary px-8 py-3 text-base" onClick={engine.play}>
+            Play session
+          </button>
+          <button type="button" className="btn btn-ghost" onClick={() => setSurface('studio')}>
+            Open full studio
+          </button>
         </div>
       ) : (
-        <div className="grid flex-1 gap-4 xl:grid-cols-3">
-          <REMscribePanel
-            tracks={affirmations}
-            notes={notes}
-            speechSupported={engine.speechSupported}
-            onChange={setAffirmations}
-            onNotesChange={setNotes}
+        <>
+          <SessionMixer
+            carrier={state.carrier}
+            soundscape={state.soundscape}
+            affirmations={state.affirmations}
+            narration={state.narration}
+            onCarrier={(carrier) => patch({ carrier })}
+            onSoundscape={(soundscape) => patch({ soundscape })}
+            onAffirmations={(affirmations) => patch({ affirmations })}
+            onNarration={(narration) => patch({ narration })}
+            onUploadBed={(file) => void engine.loadSoundscapeFile(file)}
+            onClearBed={engine.clearSoundscapeFile}
           />
-          <XenapsePanel config={xenapse} onChange={setXenapse} />
-          <MatrixHaloPanel
-            config={halo}
-            getAnalyser={engine.getAnalyser}
-            transportPlaying={engine.transport === 'playing'}
-            onChange={setHalo}
+
+          <AudioLabRack
+            open={rackOpen}
+            lab={state.lab}
+            onToggleOpen={() => setRackOpen((o) => !o)}
+            onChange={(lab) => patch({ lab })}
+            activeBand={state.carrier.band}
+            onBand={(band: BrainwaveBand | null) =>
+              patch({
+                carrier: {
+                  ...state.carrier,
+                  band,
+                },
+              })
+            }
           />
-        </div>
+        </>
       )}
 
       <footer className="pb-4 pt-2 text-center text-xs text-muted">
-        Subliminax · headphones recommended for binaural beats · audio unlocks on Play
+        Subliminax Studio · wellbeing practice tool, not a medical device · headphones recommended
+        for binaural / Iso-Pan
       </footer>
     </div>
   )

@@ -1,33 +1,23 @@
 import { useCallback, useEffect, useState } from 'react'
-import {
-  audioEngine,
-  type EngineSnapshot,
-} from '../audio/AudioEngine'
-import type { AffirmationTrack, XenapseConfig } from '../types/studio'
+import { audioEngine, type EngineSnapshot } from '../audio/AudioEngine'
+import type { StudioState } from '../types/studio'
 
 export function useAudioEngine() {
   const [snap, setSnap] = useState<EngineSnapshot>(() => audioEngine.snapshot())
 
-  useEffect(() => {
-    const unsub = audioEngine.subscribe(setSnap)
-    // Keep singleton AudioContext alive across StrictMode remounts;
-    // call audioEngine.dispose() only on full app teardown if needed.
-    return unsub
-  }, [])
+  useEffect(() => audioEngine.subscribe(setSnap), [])
 
   const play = useCallback(() => void audioEngine.play(), [])
   const pause = useCallback(() => void audioEngine.pause(), [])
   const stop = useCallback(() => audioEngine.stop(), [])
   const setMasterVolume = useCallback((v: number) => audioEngine.setMasterVolume(v), [])
-  const setXenapseConfig = useCallback(
-    (c: XenapseConfig) => audioEngine.setXenapseConfig(c),
+  const syncFromState = useCallback((s: StudioState) => audioEngine.syncFromState(s), [])
+  const updateElapsed = useCallback((ms: number) => audioEngine.updateElapsed(ms), [])
+  const loadSoundscapeFile = useCallback(
+    (file: File) => audioEngine.loadSoundscapeFile(file),
     [],
   )
-  const setAffirmations = useCallback(
-    (tracks: AffirmationTrack[]) => audioEngine.setAffirmations(tracks),
-    [],
-  )
-  const unlock = useCallback(() => audioEngine.unlock(), [])
+  const clearSoundscapeFile = useCallback(() => audioEngine.clearSoundscapeFile(), [])
 
   return {
     ...snap,
@@ -35,10 +25,9 @@ export function useAudioEngine() {
     pause,
     stop,
     setMasterVolume,
-    setXenapseConfig,
-    setAffirmations,
-    unlock,
-    speechSupported: audioEngine.getSpeechSupported(),
-    getAnalyser: () => audioEngine.getAnalyser(),
+    syncFromState,
+    updateElapsed,
+    loadSoundscapeFile,
+    clearSoundscapeFile,
   }
 }
