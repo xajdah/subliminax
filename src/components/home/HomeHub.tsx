@@ -21,6 +21,11 @@ const CARDS: {
     primary: true,
   },
   {
+    id: 'vision',
+    title: 'Vision Boards',
+    blurb: 'Goal manifestation hub — collage boards, live countdowns, progress tracking.',
+  },
+  {
     id: 'presets',
     title: 'Quick Presets',
     blurb: 'Jump into Create with curated focus, sleep, and calm starting points.',
@@ -93,7 +98,7 @@ export function HomeHub({ onNavigate }: Props) {
 
       <section className="relative z-10 mx-auto max-w-7xl px-6 pb-20 sm:px-10 lg:px-14">
         <h2 className="panel-title mb-4 text-lg text-ink">Studio hub</h2>
-        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
           {CARDS.map((card) => (
             <button
               key={card.id}

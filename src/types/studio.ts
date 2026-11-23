@@ -3,7 +3,7 @@
 import { DEFAULT_PSYCHO, type PsychoacousticState } from './psychoacoustic'
 
 export type ThemeMode = 'dark' | 'light'
-export type AppView = 'home' | 'create' | 'studio' | 'presets' | 'saved' | 'guide'
+export type AppView = 'home' | 'create' | 'studio' | 'presets' | 'saved' | 'guide' | 'vision'
 export type TransportState = 'stopped' | 'playing' | 'paused'
 
 export type IntentCategory = 'physical' | 'mental' | 'spiritual' | 'emotional' | 'custom'

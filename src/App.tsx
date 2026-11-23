@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { CreateSubliminal } from './components/create/CreateSubliminal'
 import { HomeHub } from './components/home/HomeHub'
+import { VisionBoardHub } from './components/vision/VisionBoardHub'
 import { ThemeToggle } from './components/ThemeToggle'
 import { useTheme } from './hooks/useTheme'
 import type { AppView } from './types/studio'
@@ -37,6 +38,7 @@ export default function App() {
   if (view === 'home') return <HomeHub onNavigate={setView} />
   if (view === 'create' || view === 'studio' || view === 'presets')
     return <CreateSubliminal onHome={() => setView('home')} />
+  if (view === 'vision') return <VisionBoardHub onHome={() => setView('home')} />
   if (view === 'saved')
     return (
       <Placeholder
