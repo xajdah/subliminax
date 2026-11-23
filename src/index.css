@@ -286,3 +286,87 @@ body {
     transition: none !important;
   }
 }
+
+/* —— Homepage hero (bronze → teal) —— */
+:root {
+  --bronze: #ba6e39;
+  --bronze-soft: #c48a48;
+  --teal-deep-hero: #035864;
+  --hero-ink: #f3f6f5;
+}
+
+.text-bronze-soft {
+  color: var(--bronze-soft);
+}
+
+.hero-shell {
+  color: var(--hero-ink);
+  background: #070b0c;
+}
+
+.hero-atmosphere {
+  pointer-events: none;
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(900px 520px at 12% 40%, rgba(186, 110, 57, 0.28), transparent 58%),
+    radial-gradient(800px 480px at 88% 45%, rgba(3, 88, 100, 0.45), transparent 55%),
+    radial-gradient(700px 400px at 50% 110%, rgba(20, 184, 166, 0.12), transparent 50%),
+    linear-gradient(
+      118deg,
+      #1a100c 0%,
+      #121816 38%,
+      #0a1518 68%,
+      #041218 100%
+    );
+}
+
+.hero-grain {
+  pointer-events: none;
+  position: absolute;
+  inset: 0;
+  opacity: 0.07;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  mix-blend-mode: overlay;
+}
+
+.hero-gradient-text {
+  background: linear-gradient(105deg, var(--bronze-soft) 0%, #8f7a48 40%, #2dd4bf 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+.hero-mark-glow {
+  position: absolute;
+  width: min(70vw, 420px);
+  height: min(70vw, 420px);
+  border-radius: 999px;
+  background: radial-gradient(
+    circle,
+    rgba(186, 110, 57, 0.22) 0%,
+    rgba(45, 212, 191, 0.16) 45%,
+    transparent 70%
+  );
+  filter: blur(8px);
+}
+
+.hero-mark-img {
+  animation: soft-rise 700ms ease both, hero-float 7s ease-in-out 700ms infinite;
+}
+
+@keyframes hero-float {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-10px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hero-mark-img {
+    animation: none !important;
+  }
+}
