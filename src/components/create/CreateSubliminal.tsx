@@ -265,7 +265,14 @@ export function CreateSubliminal({ onHome, initialMix = null, onOpenSaved }: Pro
             type="button"
             className="btn btn-primary btn-icon"
             aria-label="Play"
-            onClick={() => void engine.play(session)}
+            onClick={() => {
+              // On Soundtrack step, play only the selected bed — never frequency/voice
+              if (session.step === 'soundtrack') {
+                void engine.playSoundtrackSolo(session)
+                return
+              }
+              void engine.play(session)
+            }}
           >
             ▶
           </button>
@@ -398,7 +405,7 @@ export function CreateSubliminal({ onHome, initialMix = null, onOpenSaved }: Pro
           session={session}
           transport={engine.transport}
           onChange={(soundtrack) => patch({ soundtrack })}
-          onPlay={() => void engine.play(session)}
+          onPlay={() => void engine.playSoundtrackSolo(session)}
           onPause={engine.pause}
           onStop={stopPreview}
           onAuditionTrack={(trackId) => {
@@ -685,7 +692,7 @@ function StepPreviewControls({
         </button>
       ) : (
         <button type="button" className="btn btn-primary" onClick={onPlay}>
-          ▶ Play preview
+          ▶ Play track
         </button>
       )}
       <button type="button" className="btn btn-ghost" onClick={onStop}>
@@ -721,9 +728,9 @@ function SoundtrackStep({
       <h2 className="panel-title text-lg">Step 4 · Soundtrack by Mood</h2>
       <p className="text-sm text-muted">
         Each mood lists only its own beds — Calming and Energizing show their real music tracks;
-        other moods use synth beds. Tile ▶ auditions that bed alone (no frequency or voice). Use
-        Play preview / the top transport for the full mix. On cloud VMs without speakers, use{' '}
-        <span className="text-ink">Download 12s WAV</span>.
+        other moods use synth beds. ▶ on a tile (or Play track) auditions that bed alone — no
+        frequency tone and no narration. Full mix plays later on Ambient / Mix. On cloud VMs
+        without speakers, use <span className="text-ink">Download 12s WAV</span>.
       </p>
       <StepPreviewControls
         transport={transport}

@@ -142,6 +142,15 @@ export class MixEngine {
     const prev = this.session
     this.session = session
     if (this.transport !== 'playing') return
+    // Solo tile audition must never reintroduce carrier / ambients / voice via sync
+    if (this.soundtrackSolo) {
+      if (prev && prev.soundtrack.trackId === session.soundtrack.trackId) {
+        this.applyLiveLevels(session)
+        return
+      }
+      void this.rebuildLive()
+      return
+    }
     if (prev && this.canApplyLiveLevels(prev, session)) {
       this.applyLiveLevels(session)
       return
@@ -231,8 +240,11 @@ export class MixEngine {
     if (ctx.state === 'suspended') await ctx.resume()
     this.stopVoice()
     this.teardownGraph(false)
-    await this.buildGraph(session, { soundtrackOnly: true })
+    // Mark playing before decode so a concurrent sync() keeps the solo path
     this.transport = 'playing'
+    this.emit()
+    await this.buildGraph(session, { soundtrackOnly: true })
+    if (!this.soundtrackSolo || this.session !== session) return
     this.emit()
   }
 
