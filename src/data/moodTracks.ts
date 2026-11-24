@@ -113,7 +113,7 @@ export const MOOD_TRACKS: MoodTrackDef[] = [
     name: 'Morning Sun Vitality 2',
     blurb: 'Full audio bed · second sunlit vitality bed',
     profile: 'upbeat-pulse',
-    audioSrc: '/audio/mood/energizing/morning-sun-vitality-2.mp3',
+    audioSrc: `${R2_MUSIC_BASE}/energizing/Morning%20Sun%20Vitality%202.mp3`,
   },
   {
     id: 'rising-warmth-kundalini',
@@ -121,7 +121,7 @@ export const MOOD_TRACKS: MoodTrackDef[] = [
     name: 'Rising Warmth Kundalini',
     blurb: 'Full audio bed · rising warmth & activation',
     profile: 'sparkle-arp',
-    audioSrc: '/audio/mood/energizing/rising-warmth-kundalini.mp3',
+    audioSrc: `${R2_MUSIC_BASE}/energizing/Rising%20Warmth%20Kundalini.mp3`,
   },
   {
     id: 'warm-shimmer',
@@ -129,7 +129,7 @@ export const MOOD_TRACKS: MoodTrackDef[] = [
     name: 'Warm Shimmer',
     blurb: 'Full audio bed · warm shimmering energy',
     profile: 'bright-pulse',
-    audioSrc: '/audio/mood/energizing/warm-shimmer.mp3',
+    audioSrc: `${R2_MUSIC_BASE}/energizing/Warm%20Shimmer.mp3`,
   },
   // Energizing — procedural synths
   {
