@@ -9,6 +9,7 @@ import { useMixEngine } from '../../hooks/useMixEngine'
 import { usePsychoEngine } from '../../hooks/usePsychoEngine'
 import { useSessionTimer, formatElapsed } from '../../hooks/useSessionTimer'
 import { useTheme } from '../../hooks/useTheme'
+import { applyOptimalMixLevels } from '../../data/mixLevels'
 import { savedMixStorage, titleForSession } from '../../services/savedMixStorage'
 import type { SavedMix } from '../../types/savedMix'
 import {
@@ -22,6 +23,7 @@ import {
   type EntrainmentType,
   type IntentCategory,
   type MoodCategory,
+  type TransportState,
 } from '../../types/studio'
 import { ThemeToggle } from '../ThemeToggle'
 import { AdvancedEngineeringPanel } from './AdvancedEngineeringPanel'
@@ -41,7 +43,9 @@ export function CreateSubliminal({ onHome, initialMix = null, onOpenSaved }: Pro
   const psycho = usePsychoEngine()
   const mixIdRef = useRef<string | undefined>(initialMix?.id)
   const [session, setSession] = useState<CreateSession>(() =>
-    initialMix ? structuredClone(initialMix.session) : createDefaultSession(),
+    normalizeSession(
+      initialMix ? structuredClone(initialMix.session) : createDefaultSession(),
+    ),
   )
   const [issueQuery, setIssueQuery] = useState('')
   const [completeFlash, setCompleteFlash] = useState(false)
@@ -73,8 +77,25 @@ export function CreateSubliminal({ onHome, initialMix = null, onOpenSaved }: Pro
     if (psycho.playing) psychoEngine.applyPreset(session.advancedPsycho)
   }, [session.advancedPsycho, psycho.playing])
 
-  const patch = (p: Partial<CreateSession>) => setSession((s) => ({ ...s, ...p }))
+  const patch = (p: Partial<CreateSession>) =>
+    setSession((s) => ({
+      ...s,
+      ...p,
+      // Any manual level edit clears the Optimal preset flag unless explicitly set
+      optimalLevels:
+        p.optimalLevels !== undefined
+          ? p.optimalLevels
+          : p.masterVolume !== undefined ||
+              p.ambientBusGain !== undefined ||
+              p.soundtrack !== undefined ||
+              p.frequency !== undefined ||
+              p.voice !== undefined
+            ? false
+            : s.optimalLevels,
+    }))
   const go = (step: CreateStep) => patch({ step })
+
+  const applyOptimal = () => setSession((s) => applyOptimalMixLevels(s))
 
   const previewWithTools = async () => {
     await engine.play(session)
@@ -190,7 +211,7 @@ export function CreateSubliminal({ onHome, initialMix = null, onOpenSaved }: Pro
       </nav>
 
       {/* Transport strip */}
-      <div className="panel mb-5 flex flex-wrap items-center gap-3 px-4 py-3">
+      <div className="panel mb-3 flex flex-wrap items-center gap-3 px-4 py-3">
         {engine.transport === 'playing' ? (
           <button type="button" className="btn btn-primary btn-icon" aria-label="Pause" onClick={engine.pause}>
             ❚❚
@@ -200,7 +221,7 @@ export function CreateSubliminal({ onHome, initialMix = null, onOpenSaved }: Pro
             type="button"
             className="btn btn-primary btn-icon"
             aria-label="Play"
-            onClick={() => engine.play(session)}
+            onClick={() => void engine.play(session)}
           >
             ▶
           </button>
@@ -222,32 +243,20 @@ export function CreateSubliminal({ onHome, initialMix = null, onOpenSaved }: Pro
         >
           {exporting ? 'Rendering…' : 'Download 12s WAV'}
         </button>
-        <label className="ml-auto flex min-w-[12rem] items-center gap-2">
-          <span className="field-label mb-0">Master</span>
-          <input
-            className="field-range"
-            type="range"
-            min={0}
-            max={1}
-            step={0.01}
-            value={session.masterVolume}
-            onChange={(e) => {
-              const v = Number(e.target.value)
-              patch({ masterVolume: v })
-              engine.setMasterVolume(v)
-            }}
-          />
-          <span className="text-[11px] tabular-nums text-muted">
-            {Math.round(session.masterVolume * 100)}%
-          </span>
-        </label>
       </div>
-      <div className="mb-4 rounded-xl border border-[color-mix(in_oklab,#fbbf24_35%,transparent)] bg-[color-mix(in_oklab,#fbbf24_8%,transparent)] px-3 py-2 text-[12px] leading-snug text-ink">
-        This cloud machine has <strong>no speakers</strong>, so ▶ playback cannot be heard here.
-        Use <strong>Download 12s WAV</strong> and open the file on your computer to audition the
-        mix.
-        {exportMsg ? <span className="mt-1 block text-muted">{exportMsg}</span> : null}
-      </div>
+
+      <MixLevelsPanel
+        session={session}
+        onPatch={patch}
+        onApplyOptimal={applyOptimal}
+        onMaster={(v) => engine.setMasterVolume(v)}
+      />
+
+      {exportMsg ? (
+        <p className="mb-4 text-[12px] text-muted" role="status">
+          {exportMsg}
+        </p>
+      ) : null}
 
       {/* Steps */}
       {session.step === 'intent' && (
@@ -328,7 +337,11 @@ export function CreateSubliminal({ onHome, initialMix = null, onOpenSaved }: Pro
       {session.step === 'soundtrack' && (
         <SoundtrackStep
           session={session}
+          transport={engine.transport}
           onChange={(soundtrack) => patch({ soundtrack })}
+          onPlay={() => void engine.play(session)}
+          onPause={engine.pause}
+          onStop={stopPreview}
           onNext={() => go('ambient')}
         />
       )}
@@ -336,7 +349,11 @@ export function CreateSubliminal({ onHome, initialMix = null, onOpenSaved }: Pro
       {session.step === 'ambient' && (
         <AmbientStep
           session={session}
+          transport={engine.transport}
           onChange={(ambients) => patch({ ambients })}
+          onPlay={() => void engine.play(session)}
+          onPause={engine.pause}
+          onStop={stopPreview}
           onNext={() => go('voice')}
         />
       )}
@@ -369,6 +386,122 @@ export function CreateSubliminal({ onHome, initialMix = null, onOpenSaved }: Pro
         />
       )}
     </div>
+  )
+}
+
+function normalizeSession(raw: CreateSession): CreateSession {
+  return {
+    ...raw,
+    ambientBusGain: raw.ambientBusGain ?? 0.36,
+    optimalLevels: raw.optimalLevels ?? false,
+    masterVolume: raw.masterVolume ?? 0.8,
+  }
+}
+
+function MixLevelsPanel({
+  session,
+  onPatch,
+  onApplyOptimal,
+  onMaster,
+}: {
+  session: CreateSession
+  onPatch: (p: Partial<CreateSession>) => void
+  onApplyOptimal: () => void
+  onMaster: (v: number) => void
+}) {
+  const pct = (v: number) => `${Math.round(v * 100)}%`
+  return (
+    <section className="panel mb-5 space-y-3 px-4 py-3">
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <h2 className="font-display text-sm font-bold text-ink">Mix levels</h2>
+        <button
+          type="button"
+          className="chip chip-teal"
+          data-active={session.optimalLevels}
+          onClick={onApplyOptimal}
+        >
+          Optimal configuration
+        </button>
+      </div>
+      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
+        <label className="block">
+          <span className="field-label">Master · {pct(session.masterVolume)}</span>
+          <input
+            className="field-range"
+            type="range"
+            min={0}
+            max={1}
+            step={0.01}
+            value={session.masterVolume}
+            onChange={(e) => {
+              const v = Number(e.target.value)
+              onPatch({ masterVolume: v })
+              onMaster(v)
+            }}
+          />
+        </label>
+        <label className="block">
+          <span className="field-label">Track · {pct(session.soundtrack.volume)}</span>
+          <input
+            className="field-range"
+            type="range"
+            min={0}
+            max={1}
+            step={0.01}
+            value={session.soundtrack.volume}
+            onChange={(e) =>
+              onPatch({
+                soundtrack: { ...session.soundtrack, volume: Number(e.target.value) },
+              })
+            }
+          />
+        </label>
+        <label className="block">
+          <span className="field-label">Ambient · {pct(session.ambientBusGain)}</span>
+          <input
+            className="field-range"
+            type="range"
+            min={0}
+            max={1}
+            step={0.01}
+            value={session.ambientBusGain}
+            onChange={(e) => onPatch({ ambientBusGain: Number(e.target.value) })}
+          />
+        </label>
+        <label className="block">
+          <span className="field-label">Frequency · {pct(session.frequency.volume)}</span>
+          <input
+            className="field-range"
+            type="range"
+            min={0}
+            max={1}
+            step={0.01}
+            value={session.frequency.volume}
+            onChange={(e) =>
+              onPatch({
+                frequency: { ...session.frequency, volume: Number(e.target.value) },
+              })
+            }
+          />
+        </label>
+        <label className="block">
+          <span className="field-label">Voice · {pct(session.voice.volume)}</span>
+          <input
+            className="field-range"
+            type="range"
+            min={0}
+            max={1}
+            step={0.01}
+            value={session.voice.volume}
+            onChange={(e) =>
+              onPatch({
+                voice: { ...session.voice, volume: Number(e.target.value) },
+              })
+            }
+          />
+        </label>
+      </div>
+    </section>
   )
 }
 
@@ -536,6 +669,18 @@ function FrequencyStep({
           </label>
         </div>
       )}
+      <label className="block max-w-xs">
+        <span className="field-label">Frequency volume</span>
+        <input
+          className="field-range"
+          type="range"
+          min={0}
+          max={1}
+          step={0.01}
+          value={f.volume}
+          onChange={(e) => patch({ volume: Number(e.target.value) })}
+        />
+      </label>
       <button type="button" className="btn btn-primary" onClick={onNext}>
         Next · Soundtrack
       </button>
@@ -543,13 +688,50 @@ function FrequencyStep({
   )
 }
 
+function StepPreviewControls({
+  transport,
+  onPlay,
+  onPause,
+  onStop,
+}: {
+  transport: TransportState
+  onPlay: () => void
+  onPause: () => void
+  onStop: () => void
+}) {
+  return (
+    <div className="flex flex-wrap items-center gap-2">
+      {transport === 'playing' ? (
+        <button type="button" className="btn btn-primary" onClick={onPause}>
+          ❚❚ Pause preview
+        </button>
+      ) : (
+        <button type="button" className="btn btn-primary" onClick={onPlay}>
+          ▶ Play preview
+        </button>
+      )}
+      <button type="button" className="btn btn-ghost" onClick={onStop}>
+        ■ Stop
+      </button>
+    </div>
+  )
+}
+
 function SoundtrackStep({
   session,
+  transport,
   onChange,
+  onPlay,
+  onPause,
+  onStop,
   onNext,
 }: {
   session: CreateSession
+  transport: TransportState
   onChange: (s: CreateSession['soundtrack']) => void
+  onPlay: () => void
+  onPause: () => void
+  onStop: () => void
   onNext: () => void
 }) {
   const moods = Object.keys(MOOD_LABELS) as MoodCategory[]
@@ -558,9 +740,15 @@ function SoundtrackStep({
     <section className="panel space-y-4 p-5">
       <h2 className="panel-title text-lg">Step 4 · Soundtrack by Mood</h2>
       <p className="text-sm text-muted">
-        Calming includes real music beds. Other moods use procedural synth beds. Press ▶ Play to hear
-        the selection.
+        Calming includes real music beds. Other moods use procedural synth beds. Use Play preview
+        below to audition — track volume also lives in Mix levels above.
       </p>
+      <StepPreviewControls
+        transport={transport}
+        onPlay={onPlay}
+        onPause={onPause}
+        onStop={onStop}
+      />
       <div className="flex flex-wrap gap-1.5">
         {moods.map((m) => (
           <button
@@ -608,7 +796,7 @@ function SoundtrackStep({
           className="field-range"
           type="range"
           min={0}
-          max={0.7}
+          max={1}
           step={0.01}
           value={session.soundtrack.volume}
           onChange={(e) =>
@@ -616,20 +804,36 @@ function SoundtrackStep({
           }
         />
       </label>
-      <button type="button" className="btn btn-primary" onClick={onNext}>
-        Next · Ambient
-      </button>
+      <div className="flex flex-wrap gap-2">
+        <StepPreviewControls
+          transport={transport}
+          onPlay={onPlay}
+          onPause={onPause}
+          onStop={onStop}
+        />
+        <button type="button" className="btn btn-primary" onClick={onNext}>
+          Next · Ambient
+        </button>
+      </div>
     </section>
   )
 }
 
 function AmbientStep({
   session,
+  transport,
   onChange,
+  onPlay,
+  onPause,
+  onStop,
   onNext,
 }: {
   session: CreateSession
+  transport: TransportState
   onChange: (a: CreateSession['ambients']) => void
+  onPlay: () => void
+  onPause: () => void
+  onStop: () => void
   onNext: () => void
 }) {
   const toggle = (id: string) => {
@@ -652,7 +856,15 @@ function AmbientStep({
   return (
     <section className="panel space-y-5 p-5">
       <h2 className="panel-title text-lg">Step 5 · Ambient Sounds</h2>
-      <p className="text-sm text-muted">Multi-select with per-sound gain.</p>
+      <p className="text-sm text-muted">
+        Multi-select with per-sound gain. Ambient bus volume is in Mix levels above.
+      </p>
+      <StepPreviewControls
+        transport={transport}
+        onPlay={onPlay}
+        onPause={onPause}
+        onStop={onStop}
+      />
       {AMBIENT_GROUPS.map((g) => (
         <div key={g.id}>
           <h3 className="mb-2 text-sm font-semibold text-teal">{g.label}</h3>
@@ -687,9 +899,17 @@ function AmbientStep({
           </div>
         </div>
       ))}
-      <button type="button" className="btn btn-primary" onClick={onNext}>
-        Next · Voice
-      </button>
+      <div className="flex flex-wrap gap-2">
+        <StepPreviewControls
+          transport={transport}
+          onPlay={onPlay}
+          onPause={onPause}
+          onStop={onStop}
+        />
+        <button type="button" className="btn btn-primary" onClick={onNext}>
+          Next · Voice
+        </button>
+      </div>
     </section>
   )
 }

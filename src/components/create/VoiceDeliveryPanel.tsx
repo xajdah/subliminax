@@ -438,6 +438,23 @@ export function VoiceDeliveryPanel({ voice, onChange }: Props) {
         </div>
       )}
 
+      {voice.mode !== 'none' && (
+        <label className="block max-w-sm">
+          <span className="field-label">
+            Voice volume · {Math.round(voice.volume * 100)}%
+          </span>
+          <input
+            className="field-range"
+            type="range"
+            min={0}
+            max={1}
+            step={0.01}
+            value={voice.volume}
+            onChange={(e) => patch({ volume: Number(e.target.value) })}
+          />
+        </label>
+      )}
+
       {voice.mode !== 'none' && voice.mode !== 'record' && (
         <div className="grid gap-3 sm:grid-cols-3">
           <label>
