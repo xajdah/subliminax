@@ -74,6 +74,10 @@ export class PsychoacousticEngine {
   private voiceBufferGain: GainNode | null = null
   private voiceBuffer: AudioBuffer | null = null
   private voiceBufferLoop = true
+  private musicBufferSrc: AudioBufferSourceNode | null = null
+  private musicBufferGain: GainNode | null = null
+  private musicBuffer: AudioBuffer | null = null
+  private musicBufferLoop = true
   private savedBuses: PsychoacousticState['buses'] | null = null
   private raf = 0
   /** Master-clock phase accumulator for audio-visual sync (radians). */
@@ -275,6 +279,7 @@ export class PsychoacousticEngine {
     this.sum.connect(this.limiter).connect(this.master).connect(ctx.destination)
 
     if (withDemo) await this.startDemoSources()
+    if (this.musicBuffer) this.startMusicBufferPlayback()
     if (this.voiceBuffer) this.startVoiceBufferPlayback()
     this.applyAll()
     const t0 = ctx.currentTime
@@ -439,6 +444,7 @@ export class PsychoacousticEngine {
     try {
       this.musicOsc?.stop()
       this.voiceOsc?.stop()
+      this.stopMusicBufferPlayback()
       this.stopVoiceBufferPlayback()
       this.stopFreqNodes()
       this.noiseNode?.disconnect()
@@ -629,6 +635,30 @@ export class PsychoacousticEngine {
     this.voiceBuffer = null
   }
 
+  /**
+   * Route a calming / soundtrack bed into the Music bus (e.g. REMscribe night).
+   * Mutes the demo triangle pad while a real bed is playing.
+   */
+  async injectMusicBuffer(buffer: AudioBuffer, opts?: { loop?: boolean }) {
+    this.musicBuffer = buffer
+    this.musicBufferLoop = opts?.loop !== false
+    if (!this.playing || !this.ctx || !this.buses) return
+    this.startMusicBufferPlayback()
+  }
+
+  clearMusicBuffer() {
+    this.stopMusicBufferPlayback()
+    this.musicBuffer = null
+    // Restore soft demo pad if night ends while engine still playing
+    if (this.playing && this.ctx && this.musicGain) {
+      setParam(this.musicGain.gain, 0.45, this.ctx)
+    }
+  }
+
+  getMusicInput(): GainNode | null {
+    return this.buses?.music.input ?? null
+  }
+
   getVoiceInput(): GainNode | null {
     return this.buses?.voice.input ?? null
   }
@@ -662,6 +692,37 @@ export class PsychoacousticEngine {
     }
     this.voiceBufferSrc = null
     this.voiceBufferGain = null
+  }
+
+  private startMusicBufferPlayback() {
+    if (!this.ctx || !this.buses || !this.musicBuffer) return
+    this.stopMusicBufferPlayback()
+    // Mute demo triangle pad when a real calming bed is on the bus
+    if (this.musicGain) {
+      setParam(this.musicGain.gain, 0.0001, this.ctx)
+    }
+    const src = this.ctx.createBufferSource()
+    src.buffer = this.musicBuffer
+    src.loop = this.musicBufferLoop
+    const g = this.ctx.createGain()
+    // Mild headroom into bus — overnight bus trim stays on SleepCurveScheduler
+    g.gain.value = 0.85
+    src.connect(g).connect(this.buses.music.input)
+    src.start()
+    this.musicBufferSrc = src
+    this.musicBufferGain = g
+  }
+
+  private stopMusicBufferPlayback() {
+    try {
+      this.musicBufferSrc?.stop()
+      this.musicBufferSrc?.disconnect()
+      this.musicBufferGain?.disconnect()
+    } catch {
+      /* noop */
+    }
+    this.musicBufferSrc = null
+    this.musicBufferGain = null
   }
 
   applyPreset(state: PsychoacousticState) {

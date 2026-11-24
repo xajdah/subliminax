@@ -115,6 +115,8 @@ export interface RemScribeSessionConfig {
   language: DreamLanguageCode
   linkedAffirmations: string[]
   linkedGoalNames: string[]
+  /** Calming soundtrack bed played on the music bus overnight */
+  musicTrackId: string | null
 }
 
 export interface RemScribeSession {
