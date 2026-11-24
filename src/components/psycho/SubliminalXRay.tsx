@@ -26,6 +26,8 @@ interface Props {
   checkMasking: boolean
   onIsolateVoice: (on: boolean) => void
   onCheckMasking: (on: boolean) => void
+  /** Launch closed-eye Ganzfeld visual sync (Player / Studio). */
+  onOpenGanzfeld?: () => void
 }
 
 export function SubliminalXRay({
@@ -38,6 +40,7 @@ export function SubliminalXRay({
   checkMasking,
   onIsolateVoice,
   onCheckMasking,
+  onOpenGanzfeld,
 }: Props) {
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const raf = useRef(0)
@@ -170,7 +173,17 @@ export function SubliminalXRay({
     <div className="panel overflow-hidden p-3">
       <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
         <h3 className="panel-title text-sm">Subliminal X-Ray</h3>
-        <div className="flex gap-2">
+        <div className="flex flex-wrap gap-2">
+          {onOpenGanzfeld && (
+            <button
+              type="button"
+              className="btn btn-teal text-xs"
+              onClick={onOpenGanzfeld}
+              title="Closed-eye photic flicker locked to entrainment phase"
+            >
+              👁️ Ganzfeld Visual Sync
+            </button>
+          )}
           <button
             type="button"
             className={`btn text-xs ${isolateVoice ? 'btn-primary' : 'btn-ghost'}`}

@@ -1,6 +1,8 @@
+import { useState } from 'react'
 import { STUDIO_PRESETS } from '../../data/studioPresets'
 import { usePsychoEngine } from '../../hooks/usePsychoEngine'
 import { useTheme } from '../../hooks/useTheme'
+import { GanzfeldEntrainmentOverlay } from '../GanzfeldEntrainmentOverlay'
 import { SubliminaXLogo } from '../shared/SubliminaXLogo'
 import { ThemeToggle } from '../ThemeToggle'
 import { PsychoacousticTunerRack } from '../psycho/PsychoacousticTunerRack'
@@ -14,6 +16,7 @@ export function PsychoStudio({ onHome }: Props) {
   const { theme, toggleTheme } = useTheme()
   const eng = usePsychoEngine()
   const maskDb = eng.state.buses.music + eng.state.breath.envelopeMaskDb
+  const [ganzfeldOpen, setGanzfeldOpen] = useState(false)
 
   return (
     <div className="hero-shell relative isolate min-h-screen">
@@ -77,6 +80,10 @@ export function PsychoStudio({ onHome }: Props) {
             checkMasking={eng.state.checkMasking}
             onIsolateVoice={eng.setIsolateVoice}
             onCheckMasking={eng.setCheckMasking}
+            onOpenGanzfeld={() => {
+              if (!eng.playing) void eng.start()
+              setGanzfeldOpen(true)
+            }}
           />
         </div>
 
@@ -86,6 +93,8 @@ export function PsychoStudio({ onHome }: Props) {
           onBusDb={eng.setBusDb}
         />
       </main>
+
+      <GanzfeldEntrainmentOverlay open={ganzfeldOpen} onClose={() => setGanzfeldOpen(false)} />
     </div>
   )
 }

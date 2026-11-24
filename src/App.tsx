@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { CreateSubliminal } from './components/create/CreateSubliminal'
 import { HomeHub } from './components/home/HomeHub'
+import { LivePlayer } from './components/player/LivePlayer'
 import { RemScribeHub } from './components/remscribe/RemScribeHub'
 import { VisionBoardHub } from './components/vision/VisionBoardHub'
 import { ThemeToggle } from './components/ThemeToggle'
@@ -41,14 +42,7 @@ export default function App() {
     return <CreateSubliminal onHome={() => setView('home')} />
   if (view === 'vision') return <VisionBoardHub onHome={() => setView('home')} />
   if (view === 'remscribe') return <RemScribeHub onHome={() => setView('home')} />
-  if (view === 'player')
-    return (
-      <Placeholder
-        title="Live Player"
-        body="Full X-Ray + Tuner playback surface — open a track from Saved Tracks or start the Studio engine."
-        onHome={() => setView('home')}
-      />
-    )
+  if (view === 'player') return <LivePlayer onHome={() => setView('home')} />
   if (view === 'saved')
     return (
       <Placeholder
