@@ -740,7 +740,7 @@ function SoundtrackStep({
     <section className="panel space-y-4 p-5">
       <h2 className="panel-title text-lg">Step 4 · Soundtrack by Mood</h2>
       <p className="text-sm text-muted">
-        Calming includes real music beds. Other moods use procedural synth beds. Use Play preview
+        Calming and Energizing include real music beds; other moods use synth beds. Use Play preview
         below to audition — track volume also lives in Mix levels above.
       </p>
       <StepPreviewControls
