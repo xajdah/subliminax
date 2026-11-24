@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 import { nightAcousticMonitor } from '../../audio/NightAcousticMonitor'
 import { psychoEngine } from '../../audio/PsychoacousticEngine'
 import { sleepCurveScheduler } from '../../audio/SleepCurveScheduler'
+import { tracksForMood } from '../../data/moodTracks'
 import { useTheme } from '../../hooks/useTheme'
 import { visionBoardStorage } from '../../services/visionBoardStorage'
 import { remscribeStorage } from '../../services/remscribeStorage'
@@ -20,6 +21,9 @@ import {
 import { ThemeToggle } from '../ThemeToggle'
 import { RemScribeMorningReport } from '../RemScribeMorningReport'
 import { RemScribeNightMode } from '../RemScribeNightMode'
+
+const CALMING_BEDS = tracksForMood('calming')
+const DEFAULT_CALMING_TRACK_ID = CALMING_BEDS[0]?.id ?? 'tranquility'
 
 interface Props {
   onHome: () => void
@@ -52,6 +56,7 @@ export function RemScribeHub({ onHome }: Props) {
     return `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`
   })
   const [language, setLanguage] = useState<DreamLanguageCode>('en-US')
+  const [musicTrackId, setMusicTrackId] = useState(DEFAULT_CALMING_TRACK_ID)
   const [session, setSession] = useState<RemScribeSession | null>(null)
   const [remainingMs, setRemainingMs] = useState(0)
   const [phase, setPhase] = useState<SleepCurvePhase>('descent')
@@ -140,6 +145,7 @@ export function RemScribeHub({ onHome }: Props) {
           language,
           linkedAffirmations: affirmations,
           linkedGoalNames: goals.map((g) => g.title),
+          musicTrackId,
         },
         startedAt,
         endedAt: null,
@@ -156,24 +162,27 @@ export function RemScribeHub({ onHome }: Props) {
       setBeatHz(10)
 
       sleepCurveScheduler.configure(resolvedHours)
-      await sleepCurveScheduler.start({
-        onTick: ({ remainingMs: rem, phase: ph, beatHz: hz }) => {
-          setRemainingMs(rem)
-          setPhase(ph)
-          setBeatHz(hz)
+      await sleepCurveScheduler.start(
+        {
+          onTick: ({ remainingMs: rem, phase: ph, beatHz: hz }) => {
+            setRemainingMs(rem)
+            setPhase(ph)
+            setBeatHz(hz)
+          },
+          onHypnogram: (sample: HypnogramSample) => {
+            setSession((prev) => {
+              if (!prev) return prev
+              const updated = { ...prev, hypnogram: [...prev.hypnogram, sample] }
+              remscribeStorage.upsert(updated)
+              return updated
+            })
+          },
+          onComplete: () => {
+            void endNight()
+          },
         },
-        onHypnogram: (sample: HypnogramSample) => {
-          setSession((prev) => {
-            if (!prev) return prev
-            const updated = { ...prev, hypnogram: [...prev.hypnogram, sample] }
-            remscribeStorage.upsert(updated)
-            return updated
-          })
-        },
-        onComplete: () => {
-          void endNight()
-        },
-      })
+        { musicTrackId },
+      )
 
       await nightAcousticMonitor.start(language, startedAt, {
         onListening: setListening,
@@ -293,6 +302,29 @@ export function RemScribeHub({ onHome }: Props) {
         <p className="text-sm text-muted">
           Adaptive curve length: <span className="text-ink">{resolvedHours.toFixed(2)} hours</span>
         </p>
+      </section>
+
+      <section className="panel mb-5 space-y-4 p-5">
+        <h2 className="panel-title text-lg">Calming Night Bed</h2>
+        <p className="text-sm text-muted">
+          Same calming soundtrack beds as Studio — loops quietly under the sleep curve.
+        </p>
+        <div className="grid gap-2 sm:grid-cols-2">
+          {CALMING_BEDS.map((track) => (
+            <button
+              key={track.id}
+              type="button"
+              className="chip justify-start text-left"
+              data-active={musicTrackId === track.id}
+              onClick={() => setMusicTrackId(track.id)}
+            >
+              <span className="min-w-0">
+                <span className="block font-medium text-ink">{track.name}</span>
+                <span className="block text-xs text-muted">{track.blurb}</span>
+              </span>
+            </button>
+          ))}
+        </div>
       </section>
 
       <section className="panel mb-5 space-y-4 p-5">

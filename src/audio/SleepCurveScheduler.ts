@@ -3,7 +3,7 @@
  * Drives PsychoacousticEngine parameter automation across the session duration.
  */
 
-import { psychoEngine } from './PsychoacousticEngine'
+import { getTrack } from '../data/moodTracks'
 import {
   phaseAtProgress,
   stageFromBeatHz,
@@ -11,6 +11,8 @@ import {
   type SleepCurvePhase,
 } from '../types/remscribe'
 import { DEFAULT_PSYCHO, type PsychoacousticState } from '../types/psychoacoustic'
+import { psychoEngine } from './PsychoacousticEngine'
+import { loadMoodAudio } from './moodAudio'
 import { lerp } from './dsp/util'
 
 export interface SleepCurveCallbacks {
@@ -24,6 +26,11 @@ export interface SleepCurveCallbacks {
   }) => void
   onHypnogram?: (sample: HypnogramSample) => void
   onComplete?: () => void
+}
+
+export interface SleepCurveStartOpts {
+  /** Calming (or other) mood track id — loops on the music bus overnight */
+  musicTrackId?: string | null
 }
 
 function remWaveBeat(progressInRem: number, durationMs: number): number {
@@ -105,6 +112,7 @@ export class SleepCurveScheduler {
   private running = false
   private cbs: SleepCurveCallbacks = {}
   private lastHypnoSec = -30
+  private musicTrackId: string | null = null
 
   configure(durationHours: number, cbs?: SleepCurveCallbacks) {
     this.durationMs = Math.max(0.25, durationHours) * 3600 * 1000
@@ -119,8 +127,9 @@ export class SleepCurveScheduler {
     return this.running
   }
 
-  async start(cbs?: SleepCurveCallbacks) {
+  async start(cbs?: SleepCurveCallbacks, opts?: SleepCurveStartOpts) {
     if (cbs) this.cbs = cbs
+    this.musicTrackId = opts?.musicTrackId ?? null
     this.startedAt = Date.now()
     this.running = true
     this.lastHypnoSec = -30
@@ -132,6 +141,9 @@ export class SleepCurveScheduler {
     } else {
       psychoEngine.applyPreset(preset)
     }
+
+    await this.attachMusicBed(this.musicTrackId)
+
     // Start at ~10 Hz hypnagogic (will descend)
     psychoEngine.updateEntrainment(10, 200)
     psychoEngine.setNoiseColor('pink')
@@ -140,6 +152,22 @@ export class SleepCurveScheduler {
 
     this.tick()
     this.timer = window.setInterval(() => this.tick(), 2000)
+  }
+
+  private async attachMusicBed(trackId: string | null) {
+    psychoEngine.clearMusicBuffer()
+    if (!trackId) return
+    const track = getTrack(trackId)
+    if (!track?.audioSrc) return
+    const ctx = psychoEngine.getAudioContext()
+    if (!ctx) return
+    try {
+      const buffer = await loadMoodAudio(ctx, track.audioSrc)
+      if (!this.running) return
+      await psychoEngine.injectMusicBuffer(buffer, { loop: true })
+    } catch (err) {
+      console.warn('[REMscribe] could not load calming bed', trackId, err)
+    }
   }
 
   private tick() {
@@ -219,6 +247,8 @@ export class SleepCurveScheduler {
       window.clearInterval(this.timer)
       this.timer = null
     }
+    psychoEngine.clearMusicBuffer()
+    this.musicTrackId = null
     if (completed) this.cbs.onComplete?.()
   }
 
