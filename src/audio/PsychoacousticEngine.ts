@@ -454,10 +454,10 @@ export class PsychoacousticEngine {
     this.emit()
   }
 
-  setBusDb(bus: BusId, db: number) {
+  setBusDb(bus: BusId, db: number, tau = 0.05) {
     this.state.buses[bus] = clamp(db, -60, 0)
     if (this.buses && this.ctx) {
-      setParam(this.buses[bus].gain.gain, dbToGain(this.state.buses[bus]), this.ctx)
+      setParam(this.buses[bus].gain.gain, dbToGain(this.state.buses[bus]), this.ctx, tau)
     }
     this.emit()
   }
@@ -470,7 +470,7 @@ export class PsychoacousticEngine {
   }
 
   /** Live beat / carrier update without tearing down entrainment nodes. */
-  updateEntrainment(beatHz: number, carrierHz?: number) {
+  updateEntrainment(beatHz: number, carrierHz?: number, tau = 0.2) {
     this.state.frequency.beatHz = clamp(beatHz, 0.5, 40)
     if (carrierHz != null) this.state.frequency.carrierHz = clamp(carrierHz, 80, 600)
     this.syncEntrainmentClock(this.state.frequency.beatHz)
@@ -480,17 +480,17 @@ export class PsychoacousticEngine {
     }
     const ctx = this.ctx
     const f = this.state.frequency
-    if (this.freqOscL) setParam(this.freqOscL.frequency, nyquistClamp(f.carrierHz, ctx.sampleRate), ctx, 0.2)
+    if (this.freqOscL) setParam(this.freqOscL.frequency, nyquistClamp(f.carrierHz, ctx.sampleRate), ctx, tau)
     if (this.freqOscR && f.mode === 'binaural') {
       setParam(
         this.freqOscR.frequency,
         nyquistClamp(f.carrierHz + f.beatHz, ctx.sampleRate),
         ctx,
-        0.2,
+        tau,
       )
     }
     if (this.isoLfo && f.mode === 'isochronic') {
-      setParam(this.isoLfo.frequency, Math.max(0.5, f.beatHz), ctx, 0.2)
+      setParam(this.isoLfo.frequency, Math.max(0.5, f.beatHz), ctx, tau)
     }
     this.emit()
   }

@@ -1,7 +1,9 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
+import { focusShieldController } from '../../audio/FocusShieldController'
 import { STUDIO_PRESETS } from '../../data/studioPresets'
 import { usePsychoEngine } from '../../hooks/usePsychoEngine'
 import { useTheme } from '../../hooks/useTheme'
+import { FocusShieldPanel } from '../FocusShieldPanel'
 import { GanzfeldEntrainmentOverlay } from '../GanzfeldEntrainmentOverlay'
 import { SubliminaXLogo } from '../shared/SubliminaXLogo'
 import { ThemeToggle } from '../ThemeToggle'
@@ -19,6 +21,12 @@ export function LivePlayer({ onHome }: Props) {
   const maskDb = eng.state.buses.music + eng.state.breath.envelopeMaskDb
   const [ganzfeldOpen, setGanzfeldOpen] = useState(false)
 
+  useEffect(() => {
+    return () => {
+      if (focusShieldController.isActive()) focusShieldController.disable()
+    }
+  }, [])
+
   return (
     <div className="hero-shell relative isolate min-h-screen">
       <div className="hero-atmosphere psycho-studio-atmosphere" aria-hidden />
@@ -32,7 +40,7 @@ export function LivePlayer({ onHome }: Props) {
             <p className="font-display text-lg font-bold">
               Sublimina<span className="text-teal">x</span> Player
             </p>
-            <p className="text-xs text-muted">Live entrainment · X-Ray · Ganzfeld Sync</p>
+            <p className="text-xs text-muted">Live entrainment · Focus Shield · Ganzfeld</p>
           </div>
         </div>
         <div className="flex items-center gap-2">
@@ -51,6 +59,8 @@ export function LivePlayer({ onHome }: Props) {
 
       <main className="relative z-10 mx-auto grid max-w-7xl gap-4 px-5 pb-16 sm:px-8 lg:grid-cols-[1fr_1.1fr]">
         <div className="space-y-4">
+          <FocusShieldPanel />
+
           <section className="panel p-4">
             <h2 className="panel-title mb-3 text-sm">Quick Presets</h2>
             <div className="grid gap-2 sm:grid-cols-2">

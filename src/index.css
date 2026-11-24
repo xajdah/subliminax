@@ -751,3 +751,23 @@ body {
     transition: none;
   }
 }
+
+/* —— Focus Shield HUD —— */
+.focus-shield-ring {
+  width: 5.5rem;
+  height: 5.5rem;
+  border-radius: 999px;
+  padding: 4px;
+  flex-shrink: 0;
+}
+
+.focus-shield-ring-inner {
+  width: 100%;
+  height: 100%;
+  border-radius: 999px;
+  background: var(--surface-solid, var(--panel));
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
