@@ -383,10 +383,59 @@ export class PsychoacousticEngine {
     this.emit()
   }
 
+  /** Smooth low-pass on a bus (used by overnight sleep-curve scheduler). */
+  setBusLowpassHz(bus: BusId, hz: number, tau = 0.35) {
+    if (!this.buses || !this.ctx) return
+    const target = nyquistClamp(hz, this.ctx.sampleRate)
+    setParam(this.buses[bus].lpf.frequency, target, this.ctx, tau)
+  }
+
+  /** Live beat / carrier update without tearing down entrainment nodes. */
+  updateEntrainment(beatHz: number, carrierHz?: number) {
+    this.state.frequency.beatHz = clamp(beatHz, 0.5, 40)
+    if (carrierHz != null) this.state.frequency.carrierHz = clamp(carrierHz, 80, 600)
+    if (!this.ctx) {
+      this.emit()
+      return
+    }
+    const ctx = this.ctx
+    const f = this.state.frequency
+    if (this.freqOscL) setParam(this.freqOscL.frequency, nyquistClamp(f.carrierHz, ctx.sampleRate), ctx, 0.2)
+    if (this.freqOscR && f.mode === 'binaural') {
+      setParam(
+        this.freqOscR.frequency,
+        nyquistClamp(f.carrierHz + f.beatHz, ctx.sampleRate),
+        ctx,
+        0.2,
+      )
+    }
+    if (this.isoLfo && f.mode === 'isochronic') {
+      setParam(this.isoLfo.frequency, Math.max(0.5, f.beatHz), ctx, 0.2)
+    }
+    this.emit()
+  }
+
   setNoiseColor(color: NoiseColor) {
     this.state.soundscapeNoise = color
     this.noiseNode?.port.postMessage({ color })
     this.emit()
+  }
+
+  /** Soft 432 Hz confirmation chime (wake-word ack) — non-jarring. */
+  playConfirmChime(freqHz = 432, durationSec = 0.55) {
+    if (!this.ctx || !this.sum) return
+    const ctx = this.ctx
+    const osc = ctx.createOscillator()
+    osc.type = 'sine'
+    osc.frequency.value = freqHz
+    const g = ctx.createGain()
+    g.gain.value = 0.0001
+    const t0 = ctx.currentTime
+    g.gain.setTargetAtTime(0.12, t0, 0.02)
+    g.gain.setTargetAtTime(0.0001, t0 + durationSec * 0.55, 0.08)
+    osc.connect(g).connect(this.sum)
+    osc.start(t0)
+    osc.stop(t0 + durationSec + 0.1)
   }
 
   /** Instant X-Ray audition */

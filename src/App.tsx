@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { CreateSubliminal } from './components/create/CreateSubliminal'
 import { HomeHub } from './components/home/HomeHub'
+import { RemScribeHub } from './components/remscribe/RemScribeHub'
 import { VisionBoardHub } from './components/vision/VisionBoardHub'
 import { ThemeToggle } from './components/ThemeToggle'
 import { useTheme } from './hooks/useTheme'
@@ -39,11 +40,20 @@ export default function App() {
   if (view === 'create' || view === 'studio' || view === 'presets')
     return <CreateSubliminal onHome={() => setView('home')} />
   if (view === 'vision') return <VisionBoardHub onHome={() => setView('home')} />
+  if (view === 'remscribe') return <RemScribeHub onHome={() => setView('home')} />
+  if (view === 'player')
+    return (
+      <Placeholder
+        title="Live Player"
+        body="Full X-Ray + Tuner playback surface — open a track from Saved Tracks or start the Studio engine."
+        onHome={() => setView('home')}
+      />
+    )
   if (view === 'saved')
     return (
       <Placeholder
-        title="Saved Mixes"
-        body="Local vault for reopening sessions — structure is ready; persistence lands next."
+        title="Saved Tracks"
+        body="Persistent library for completed subliminals — browse, play, edit, and export. Coming online next."
         onHome={() => setView('home')}
       />
     )

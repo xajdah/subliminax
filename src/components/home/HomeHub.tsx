@@ -21,19 +21,30 @@ const CARDS: {
     primary: true,
   },
   {
+    id: 'remscribe',
+    title: 'REMscribe',
+    blurb:
+      'Overnight sleep entrainment, acoustic event detection, and wake-word dream journaling.',
+  },
+  {
     id: 'vision',
     title: 'Vision Boards',
     blurb: 'Goal manifestation hub — collage boards, live countdowns, progress tracking.',
   },
   {
-    id: 'presets',
-    title: 'Quick Presets',
-    blurb: 'Jump into Create with curated focus, sleep, and calm starting points.',
+    id: 'player',
+    title: 'Player',
+    blurb: 'Live psychoacoustic playback with X-Ray and tuner access.',
   },
   {
     id: 'saved',
-    title: 'Saved Mixes',
-    blurb: 'Reopen sessions you built (local vault — coming online next).',
+    title: 'Saved Tracks',
+    blurb: 'Browse, play, edit, and export completed subliminal tracks.',
+  },
+  {
+    id: 'presets',
+    title: 'Quick Presets',
+    blurb: 'Jump into Create with curated focus, sleep, and calm starting points.',
   },
   {
     id: 'guide',
@@ -98,7 +109,7 @@ export function HomeHub({ onNavigate }: Props) {
 
       <section className="relative z-10 mx-auto max-w-7xl px-6 pb-20 sm:px-10 lg:px-14">
         <h2 className="panel-title mb-4 text-lg text-ink">Studio hub</h2>
-        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
+        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
           {CARDS.map((card) => (
             <button
               key={card.id}
