@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { AMBIENT_GROUPS, AMBIENTS } from '../../data/ambients'
 import { INTENT_CATEGORIES, getIssue, issuesForCategory } from '../../data/issues'
 import { MOOD_LABELS, getTrack, tracksForMood } from '../../data/moodTracks'
@@ -9,6 +9,8 @@ import { useMixEngine } from '../../hooks/useMixEngine'
 import { usePsychoEngine } from '../../hooks/usePsychoEngine'
 import { useSessionTimer, formatElapsed } from '../../hooks/useSessionTimer'
 import { useTheme } from '../../hooks/useTheme'
+import { savedMixStorage, titleForSession } from '../../services/savedMixStorage'
+import type { SavedMix } from '../../types/savedMix'
 import {
   BRAINWAVE_RANGES,
   CREATE_STEPS,
@@ -28,15 +30,22 @@ import { VoiceDeliveryPanel } from './VoiceDeliveryPanel'
 
 interface Props {
   onHome: () => void
+  /** Re-open a mix from Saved Tracks */
+  initialMix?: SavedMix | null
+  onOpenSaved?: () => void
 }
 
-export function CreateSubliminal({ onHome }: Props) {
+export function CreateSubliminal({ onHome, initialMix = null, onOpenSaved }: Props) {
   const { theme, toggleTheme } = useTheme()
   const engine = useMixEngine()
   const psycho = usePsychoEngine()
-  const [session, setSession] = useState<CreateSession>(() => createDefaultSession())
+  const mixIdRef = useRef<string | undefined>(initialMix?.id)
+  const [session, setSession] = useState<CreateSession>(() =>
+    initialMix ? structuredClone(initialMix.session) : createDefaultSession(),
+  )
   const [issueQuery, setIssueQuery] = useState('')
   const [completeFlash, setCompleteFlash] = useState(false)
+  const [saveMsg, setSaveMsg] = useState<string | null>(null)
   const [exporting, setExporting] = useState(false)
   const [exportMsg, setExportMsg] = useState<string | null>(null)
   const elapsed = useSessionTimer(engine.transport)
@@ -85,9 +94,17 @@ export function CreateSubliminal({ onHome }: Props) {
   }
 
   const completeTrack = () => {
-    patch({ completed: true })
+    const next: CreateSession = { ...session, completed: true, step: 'mix' }
+    setSession(next)
+    const saved = savedMixStorage.save({
+      id: mixIdRef.current,
+      title: titleForSession(next),
+      session: next,
+    })
+    mixIdRef.current = saved.id
     setCompleteFlash(true)
-    window.setTimeout(() => setCompleteFlash(false), 4000)
+    setSaveMsg(`Saved “${saved.title}” to Saved Tracks on this device.`)
+    window.setTimeout(() => setCompleteFlash(false), 5000)
   }
 
   const issues = useMemo(() => {
@@ -346,6 +363,8 @@ export function CreateSubliminal({ onHome }: Props) {
           onPreview={previewWithTools}
           onStopPreview={stopPreview}
           onComplete={completeTrack}
+          onOpenSaved={onOpenSaved}
+          saveMsg={saveMsg}
           completeFlash={completeFlash}
         />
       )}
@@ -717,6 +736,8 @@ function MixStep({
   onPreview,
   onStopPreview,
   onComplete,
+  onOpenSaved,
+  saveMsg,
   completeFlash,
 }: {
   session: CreateSession
@@ -731,6 +752,8 @@ function MixStep({
   onPreview: () => void
   onStopPreview: () => void
   onComplete: () => void
+  onOpenSaved?: () => void
+  saveMsg: string | null
   completeFlash: boolean
 }) {
   const issue = session.issueId ? getIssue(session.issueId) : null
@@ -821,9 +844,17 @@ function MixStep({
           </button>
         </div>
         {(completeFlash || session.completed) && (
-          <p className="rounded-lg border border-[color-mix(in_oklab,var(--accent)_40%,transparent)] bg-[color-mix(in_oklab,var(--accent)_10%,transparent)] px-3 py-2 text-sm text-ink">
-            Track locked with your advanced engineering chain. Reopen anytime from Saved Mixes.
-          </p>
+          <div className="space-y-2 rounded-lg border border-[color-mix(in_oklab,var(--accent)_40%,transparent)] bg-[color-mix(in_oklab,var(--accent)_10%,transparent)] px-3 py-2 text-sm text-ink">
+            <p>
+              {saveMsg ??
+                'Track locked with your advanced engineering chain and saved on this device.'}
+            </p>
+            {onOpenSaved ? (
+              <button type="button" className="btn btn-teal text-xs" onClick={onOpenSaved}>
+                Open Saved Tracks
+              </button>
+            ) : null}
+          </div>
         )}
       </section>
 
