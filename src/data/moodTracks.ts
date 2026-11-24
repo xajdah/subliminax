@@ -273,8 +273,11 @@ export const MOOD_TRACKS: MoodTrackDef[] = [
   },
 ]
 
+/** Tracks for a mood. When real AUDIO beds exist, hide leftover synth beds for that mood. */
 export function tracksForMood(mood: MoodCategory) {
-  return MOOD_TRACKS.filter((t) => t.mood === mood)
+  const forMood = MOOD_TRACKS.filter((t) => t.mood === mood)
+  const audioBeds = forMood.filter((t) => t.audioSrc)
+  return audioBeds.length > 0 ? audioBeds : forMood
 }
 
 export function getTrack(id: string) {

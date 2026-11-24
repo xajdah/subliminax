@@ -717,10 +717,10 @@ function SoundtrackStep({
     <section className="panel space-y-4 p-5">
       <h2 className="panel-title text-lg">Step 4 · Soundtrack by Mood</h2>
       <p className="text-sm text-muted">
-        Calming and Energizing include real music beds; other moods use synth beds. Use ▶ on each
-        tile to audition that bed (or the transport above). On cloud VMs without speakers, use{' '}
-        <span className="text-ink">Download 12s WAV</span> — live audition works on your machine
-        after publish.
+        Each mood lists only its own beds — Calming and Energizing show their real music tracks;
+        other moods use synth beds. Use ▶ on each tile to audition (or the transport above). On
+        cloud VMs without speakers, use <span className="text-ink">Download 12s WAV</span> — live
+        audition works on your machine after publish.
       </p>
       <StepPreviewControls
         transport={transport}
