@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" role="img" aria-label="Subliminax icon">
+  <title>Subliminax</title>
+  <!--
+    Mark: sound frequencies entering a calm listening core.
+    Teal #0A6B6B — healing / audio without purple tropes.
+  -->
+  <g fill="none" stroke="#0A6B6B" stroke-width="6" stroke-linecap="round" stroke-linejoin="round">
+    <!-- Outer listening ring (open on the left toward the waves) -->
+    <path d="M58 28
+             A36 36 0 1 1 58 100"/>
+    <!-- Frequency arcs radiating from the open side -->
+    <path d="M48 40 A28 28 0 0 0 48 88"/>
+    <path d="M36 46 A20 20 0 0 0 36 82"/>
+    <path d="M24 52 A14 14 0 0 0 24 76"/>
+  </g>
+  <!-- Calm listening core -->
+  <circle cx="70" cy="64" r="8" fill="#0A6B6B"/>
+</svg>
