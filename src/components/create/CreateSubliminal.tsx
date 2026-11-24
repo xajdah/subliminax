@@ -557,7 +557,10 @@ function SoundtrackStep({
   return (
     <section className="panel space-y-4 p-5">
       <h2 className="panel-title text-lg">Step 4 · Soundtrack by Mood</h2>
-      <p className="text-sm text-muted">5 moods × 5 tracks — each plays via procedural Web Audio.</p>
+      <p className="text-sm text-muted">
+        Calming includes real music beds. Other moods use procedural synth beds. Press ▶ Play to hear
+        the selection.
+      </p>
       <div className="flex flex-wrap gap-1.5">
         {moods.map((m) => (
           <button
@@ -587,7 +590,14 @@ function SoundtrackStep({
             data-active={session.soundtrack.trackId === t.id}
             onClick={() => onChange({ ...session.soundtrack, trackId: t.id })}
           >
-            <span className="font-display text-sm font-bold">{t.name}</span>
+            <span className="font-display text-sm font-bold">
+              {t.name}
+              {t.audioSrc ? (
+                <span className="ml-1.5 text-[0.65rem] font-semibold uppercase tracking-wide text-teal">
+                  Audio
+                </span>
+              ) : null}
+            </span>
             <span className="text-[0.7rem] text-muted">{t.blurb}</span>
           </button>
         ))}

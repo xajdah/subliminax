@@ -12,6 +12,7 @@ import type {
 } from '../types/studio'
 import { BRAINWAVE_RANGES } from '../types/studio'
 import { startAmbient, type AmbientHandle } from './ambientGen'
+import { loadMoodAudio, startMoodAudioBuffer } from './moodAudio'
 import { startMoodTrack, type MoodSynthHandle } from './moodSynth'
 
 export interface MixSnapshot {
@@ -41,6 +42,8 @@ export class MixEngine {
   private speaking = false
   private driftRaf: number | null = null
   private session: CreateSession | null = null
+  /** Bumps to cancel in-flight async mood loads when the graph rebuilds */
+  private graphGen = 0
 
   subscribe(fn: Listener): () => void {
     this.listeners.add(fn)
@@ -131,7 +134,7 @@ export class MixEngine {
 
   sync(session: CreateSession) {
     this.session = session
-    if (this.transport === 'playing') this.rebuildLive()
+    if (this.transport === 'playing') void this.rebuildLive()
   }
 
   async play(session: CreateSession) {
@@ -142,13 +145,15 @@ export class MixEngine {
     if (this.transport === 'playing') return
     if (this.transport === 'paused') {
       await ctx.resume()
-      this.transport = 'playing'
+      this.teardownGraph(false)
+      await this.buildGraph(session)
       this.startVoice(session.voice)
+      this.transport = 'playing'
       this.emit()
       return
     }
     this.teardownGraph(false)
-    this.buildGraph(session)
+    await this.buildGraph(session)
     this.startVoice(session.voice)
     this.transport = 'playing'
     this.emit()
@@ -172,23 +177,40 @@ export class MixEngine {
     this.emit()
   }
 
-  private rebuildLive() {
+  private async rebuildLive() {
     if (!this.session) return
-    // lightweight: update volumes / restart mood if track changed
+    const session = this.session
     this.teardownGraph(false)
-    this.buildGraph(this.session)
+    await this.buildGraph(session)
+    if (this.transport === 'playing' && this.session === session) {
+      this.startVoice(session.voice)
+    }
   }
 
-  private buildGraph(session: CreateSession) {
+  private async buildGraph(session: CreateSession) {
+    const gen = ++this.graphGen
     const ctx = this.ensure()
     if (!this.duckBus || !this.spatialPan || !this.hrtf || !this.master) return
 
-    // Mood track
+    // Mood track — real MP3/WAV when audioSrc is set, else procedural synth
     const track = getTrack(session.soundtrack.trackId)
-    if (track) {
+    if (track?.audioSrc) {
+      try {
+        const buffer = await loadMoodAudio(ctx, track.audioSrc)
+        if (gen !== this.graphGen) return
+        this.mood = startMoodAudioBuffer(ctx, buffer, session.soundtrack.volume)
+        this.mood.output.connect(this.duckBus)
+      } catch {
+        if (gen !== this.graphGen) return
+        this.mood = startMoodTrack(ctx, track.profile, session.soundtrack.volume)
+        this.mood.output.connect(this.duckBus)
+      }
+    } else if (track) {
       this.mood = startMoodTrack(ctx, track.profile, session.soundtrack.volume)
       this.mood.output.connect(this.duckBus)
     }
+
+    if (gen !== this.graphGen) return
 
     // Ambients
     session.ambients
@@ -418,6 +440,7 @@ export class MixEngine {
   }
 
   private teardownGraph(full: boolean) {
+    this.graphGen += 1
     this.mood?.stop()
     this.mood = null
     this.ambients.forEach((h) => h.stop())
