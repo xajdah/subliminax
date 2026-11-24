@@ -12,10 +12,12 @@ import type { BusAnalysers } from '../../audio/PsychoacousticEngine'
 
 interface Props {
   advanced: PsychoacousticState
+  /** Persist + apply live DSP when preview is running */
   onChange: (next: PsychoacousticState) => void
   analysers: BusAnalysers | null
   enginePlaying: boolean
-  onPreview: () => void
+  /** Optional next-state so preview doesn’t race a stale React session */
+  onPreview: (next?: PsychoacousticState) => void
   onStopPreview: () => void
   isolateVoice: boolean
   checkMasking: boolean
@@ -60,8 +62,10 @@ export function AdvancedEngineeringPanel({
   const tools = useMemo(() => ADVANCED_TOOLS.filter((t) => t.group === group), [group])
 
   const setTool = (tool: AdvancedToolDef, value: number | boolean) => {
-    onChange(setPath(advanced, tool.path, value))
-    if (!enginePlaying) onPreview()
+    const next = setPath(advanced, tool.path, value)
+    onChange(next)
+    // First interaction starts preview with *this* state (not a stale session snapshot)
+    if (!enginePlaying) onPreview(next)
   }
 
   return (
@@ -76,7 +80,7 @@ export function AdvancedEngineeringPanel({
         </div>
         <div className="flex flex-wrap gap-2">
           {!enginePlaying ? (
-            <button type="button" className="btn btn-teal" onClick={onPreview}>
+            <button type="button" className="btn btn-teal" onClick={() => onPreview()}>
               Preview with tools
             </button>
           ) : (

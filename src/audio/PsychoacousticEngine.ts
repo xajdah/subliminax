@@ -267,9 +267,10 @@ export class PsychoacousticEngine {
       voiceBaseDb: this.state.buses.voice,
     })
 
+    // Studio mix tap enters the spatial chain so Space 3D / tools shape the real mix
     this.mixTap = ctx.createGain()
     this.mixTap.gain.value = 1
-    this.mixTap.connect(this.sum)
+    this.mixTap.connect(this.spatial.input)
 
     this.sum.connect(this.limiter).connect(this.master).connect(ctx.destination)
 

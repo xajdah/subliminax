@@ -114,7 +114,8 @@ export const DEFAULT_PSYCHO: PsychoacousticState = {
     ultrasonicCarrierHz: 16000,
   },
   frequency: {
-    mode: 'binaural',
+    // Off until a Waves tool enables it — avoids a constant binaural “bzzz” on preview
+    mode: 'off',
     carrierHz: 200,
     beatHz: 6,
     solfeggioHz: 528,
