@@ -1,10 +1,11 @@
+import { AUREVIA_STARTS, DREAM_LAUNCH, dreamHour, skyDoor, type AureviaLaunch } from '../../data/aureviaShare'
 import { useTheme } from '../../hooks/useTheme'
 import type { AppView } from '../../types/studio'
 import { SubliminaXLogo } from '../shared/SubliminaXLogo'
 import { ThemeToggle } from '../ThemeToggle'
 
 interface Props {
-  onNavigate: (view: AppView) => void
+  onNavigate: (view: AppView, launch?: AureviaLaunch | null) => void
 }
 
 const CARDS: {
@@ -19,6 +20,11 @@ const CARDS: {
     blurb:
       'Guided workflow — intent through mix, plus Advanced Audio Engineering tools with live preview.',
     primary: true,
+  },
+  {
+    id: 'aurevia',
+    title: 'Aurevia',
+    blurb: 'A voyage to your higher self — threshold, crossing, presence, and return.',
   },
   {
     id: 'remscribe',
@@ -55,6 +61,8 @@ const CARDS: {
 
 export function HomeHub({ onNavigate }: Props) {
   const { theme, toggleTheme } = useTheme()
+  const door = skyDoor()
+  const night = dreamHour()
 
   return (
     <div className="hero-shell relative isolate min-h-screen overflow-hidden">
@@ -107,6 +115,49 @@ export function HomeHub({ onNavigate }: Props) {
         </section>
       </main>
 
+      <section className="relative z-10 mx-auto max-w-7xl px-6 pb-8 sm:px-10 lg:px-14">
+        <h2 className="panel-title mb-4 text-lg text-ink">Begin a voyage</h2>
+        <div className="mb-3 grid gap-3 md:grid-cols-2">
+          <button
+            type="button"
+            onClick={() => onNavigate('aurevia', door.launch)}
+            className="panel flex min-h-[8.5rem] flex-col items-start gap-2 p-4 text-left transition hover:border-[var(--border-strong)]"
+          >
+            <span className="text-xs font-semibold uppercase tracking-[0.16em] text-bronze-soft">
+              The sky today
+            </span>
+            <span className="font-display text-base font-bold text-ink">{door.title}</span>
+            <span className="text-sm leading-snug text-muted">{door.line}</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => onNavigate('aurevia', DREAM_LAUNCH)}
+            className="panel flex min-h-[8.5rem] flex-col items-start gap-2 p-4 text-left transition hover:border-[var(--border-strong)]"
+          >
+            <span className="text-xs font-semibold uppercase tracking-[0.16em] text-bronze-soft">
+              {night ? 'The night is open' : 'For the night'}
+            </span>
+            <span className="font-display text-base font-bold text-ink">Dream letter</span>
+            <span className="text-sm leading-snug text-muted">
+              Leave one image. In the morning, write what you saw.
+            </span>
+          </button>
+        </div>
+        <div className="grid gap-3 md:grid-cols-3">
+          {AUREVIA_STARTS.map((start) => (
+            <button
+              key={start.id}
+              type="button"
+              onClick={() => onNavigate('aurevia', start.launch)}
+              className="panel animate-rise flex min-h-[8.5rem] flex-col items-start gap-2 p-4 text-left transition hover:border-[var(--border-strong)]"
+            >
+              <span className="font-display text-base font-bold text-ink">{start.title}</span>
+              <span className="text-sm leading-snug text-muted">{start.line}</span>
+            </button>
+          ))}
+        </div>
+      </section>
+
       <section className="relative z-10 mx-auto max-w-7xl px-6 pb-20 sm:px-10 lg:px-14">
         <h2 className="panel-title mb-4 text-lg text-ink">Studio hub</h2>
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
@@ -114,7 +165,7 @@ export function HomeHub({ onNavigate }: Props) {
             <button
               key={card.id}
               type="button"
-              onClick={() => onNavigate(card.id)}
+              onClick={() => onNavigate(card.id, card.id === 'aurevia' ? null : undefined)}
               className={`panel animate-rise flex min-h-[9rem] flex-col items-start gap-2 p-4 text-left transition hover:border-[var(--border-strong)] ${
                 card.primary ? 'ring-1 ring-[color-mix(in_oklab,var(--accent)_35%,transparent)]' : ''
               }`}

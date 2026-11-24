@@ -399,6 +399,12 @@ export class MixEngine {
     cycle()
   }
 
+  /** Start or stop speech so it matches the current session. Live voyages call this when the movement changes. */
+  restartVoice() {
+    if (!this.session || this.transport !== 'playing') return
+    this.startVoice(this.session.voice)
+  }
+
   private stopVoice() {
     this.speaking = false
     if (this.speechTimer != null) window.clearTimeout(this.speechTimer)

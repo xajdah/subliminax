@@ -1,4 +1,8 @@
 import { useState } from 'react'
+import { SigilMark } from '../aurevia/SigilMark'
+import { latestDreamSeen } from '../../services/dreamLetters'
+import { letterOracle } from '../../services/letterOracle'
+import { sigilStrokes } from '../../services/sigilStore'
 import { useTheme } from '../../hooks/useTheme'
 import { useVisionBoard } from '../../hooks/useVisionBoard'
 import { TIMEFRAME_FILTERS, type VisionGoal } from '../../types/visionBoard'
@@ -16,6 +20,9 @@ export function VisionBoardHub({ onHome }: Props) {
   const { goals, filter, setFilter, upsertGoal, updateGoal } = useVisionBoard()
   const [createOpen, setCreateOpen] = useState(false)
   const [selected, setSelected] = useState<VisionGoal | null>(null)
+  const strokes = sigilStrokes()
+  const oracle = letterOracle()
+  const dream = latestDreamSeen()
 
   return (
     <div className="vision-hub relative isolate min-h-screen">
@@ -56,6 +63,22 @@ export function VisionBoardHub({ onHome }: Props) {
           ))}
         </div>
       </div>
+
+      <section className="relative z-10 mx-auto mb-6 flex max-w-7xl items-center gap-4 px-4 sm:px-6 lg:px-10">
+        <div className="panel flex items-center gap-4 p-4">
+          <SigilMark strokes={strokes} />
+          <div>
+            <h2 className="panel-title text-lg text-ink">Your mark</h2>
+            <p className="mt-1 text-sm text-muted">
+              {strokes === 0
+                ? 'It begins when you keep a voyage.'
+                : `${strokes} held in gold.`}
+            </p>
+            {oracle && <p className="mt-2 max-w-md text-sm text-ink">{oracle}</p>}
+            {dream && <p className="mt-2 max-w-md text-sm text-muted">Last dream: {dream}</p>}
+          </div>
+        </div>
+      </section>
 
       <main className="relative z-10 mx-auto max-w-7xl px-4 pb-20 sm:px-6 lg:px-10">
         {goals.length === 0 ? (

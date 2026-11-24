@@ -166,6 +166,33 @@ export async function generateSubliminalScripts(intake: ScriptIntake): Promise<G
   return { short, medium, long }
 }
 
+function briefAsk(raw: string): string {
+  const cleaned = positivize(cleanPhrase(raw, 'the next true step'))
+  return cleaned.split(/\s+/).filter(Boolean).slice(0, 14).join(' ')
+}
+
+/**
+ * Short higher-self reply for an Aurevia Presence movement.
+ * Second person, present tense, kept under the narrator word cap.
+ */
+export function generateHigherSelfReply(question: string): string {
+  const hasAsk = question.trim().length > 0
+  const ask = briefAsk(question)
+  const lines = [
+    'You are safe. You are loved. You are already home.',
+    hasAsk
+      ? `You brought this with you: ${ask}. The answer is already in you.`
+      : 'You came to be shown the next true step. It is already in you.',
+    'A wider mind opens, bright and quiet.',
+    'You meet the self who sees with kindness.',
+    'Light rests on your chest and rises, unhurried.',
+    'You recognize the next true step, and it is simple.',
+    'You carry this clarity back with you.',
+    'You are whole. You are guided. You are free.',
+  ]
+  return trimToWordBudget(lines.join(' '), 90)
+}
+
 /** Trim / summarize active script to ≤ target words for Narrator TTS. */
 export function condenseScriptToLimit(
   text: string,

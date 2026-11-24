@@ -83,6 +83,12 @@ export const AMBIENTS: AmbientDef[] = [
     profile: 'temple',
   },
   {
+    id: 'glass-temple',
+    group: 'texture',
+    label: 'Glass Temple',
+    profile: 'glass-temple',
+  },
+  {
     id: 'vinyl-hiss',
     group: 'texture',
     label: 'Vinyl Crackle & Warm Tape Hiss',

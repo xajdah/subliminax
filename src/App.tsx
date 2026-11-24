@@ -1,10 +1,12 @@
 import { useState } from 'react'
+import { AureviaSession } from './components/aurevia/AureviaSession'
 import { CreateSubliminal } from './components/create/CreateSubliminal'
 import { HomeHub } from './components/home/HomeHub'
 import { LivePlayer } from './components/player/LivePlayer'
 import { RemScribeHub } from './components/remscribe/RemScribeHub'
 import { VisionBoardHub } from './components/vision/VisionBoardHub'
 import { ThemeToggle } from './components/ThemeToggle'
+import { clearAureviaQuery, readAureviaLaunch, type AureviaLaunch } from './data/aureviaShare'
 import { useTheme } from './hooks/useTheme'
 import type { AppView } from './types/studio'
 
@@ -35,27 +37,46 @@ function Placeholder({
 }
 
 export default function App() {
-  const [view, setView] = useState<AppView>('home')
+  const openedFromLink = useState(() => readAureviaLaunch())[0]
+  const [view, setView] = useState<AppView>(openedFromLink ? 'aurevia' : 'home')
+  const [launch, setLaunch] = useState<AureviaLaunch | null>(openedFromLink)
 
-  if (view === 'home') return <HomeHub onNavigate={setView} />
+  const go = (next: AppView, nextLaunch?: AureviaLaunch | null) => {
+    if (next === 'aurevia') setLaunch(nextLaunch ?? null)
+    else {
+      setLaunch(null)
+      clearAureviaQuery()
+    }
+    setView(next)
+  }
+
+  if (view === 'home') return <HomeHub onNavigate={go} />
   if (view === 'create' || view === 'studio' || view === 'presets')
-    return <CreateSubliminal onHome={() => setView('home')} />
-  if (view === 'vision') return <VisionBoardHub onHome={() => setView('home')} />
-  if (view === 'remscribe') return <RemScribeHub onHome={() => setView('home')} />
-  if (view === 'player') return <LivePlayer onHome={() => setView('home')} />
+    return <CreateSubliminal onHome={() => go('home')} />
+  if (view === 'vision') return <VisionBoardHub onHome={() => go('home')} />
+  if (view === 'remscribe') return <RemScribeHub onHome={() => go('home')} />
+  if (view === 'player') return <LivePlayer onHome={() => go('home')} />
+  if (view === 'aurevia')
+    return (
+      <AureviaSession
+        key={`${launch?.path ?? 'full'}:${launch?.question ?? ''}:${launch?.fromGift ? 'gift' : 'open'}:${launch?.dream ? 'dream' : 'day'}:${launch?.quietVoice ? 'quiet' : 'voice'}`}
+        launch={launch}
+        onHome={() => go('home')}
+      />
+    )
   if (view === 'saved')
     return (
       <Placeholder
         title="Saved Tracks"
         body="Persistent library for completed subliminals — browse, play, edit, and export. Coming online next."
-        onHome={() => setView('home')}
+        onHome={() => go('home')}
       />
     )
   return (
     <Placeholder
       title="Psychoacoustics Guide"
       body="Plain-language notes on carriers, brainwave bands, binaural/isochronic audio, and masking. Full guide copy can expand here."
-      onHome={() => setView('home')}
+      onHome={() => go('home')}
     />
   )
 }

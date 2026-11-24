@@ -54,6 +54,43 @@ export function startAmbient(
     case 'underwater':
       noise('brown', 'lowpass', 400)
       break
+    case 'glass-temple': {
+      const partials = [528, 792, 1056, 1584]
+      partials.forEach((hz, i) => {
+        const o = ctx.createOscillator()
+        o.type = 'sine'
+        o.frequency.value = hz
+        const g = ctx.createGain()
+        const base = 0.055 / (i + 1)
+        g.gain.value = base
+        const lfo = ctx.createOscillator()
+        lfo.type = 'sine'
+        lfo.frequency.value = 0.04 + i * 0.015
+        const depth = ctx.createGain()
+        depth.gain.value = base * 0.4
+        lfo.connect(depth)
+        depth.connect(g.gain)
+        o.connect(g)
+        g.connect(output)
+        o.start()
+        lfo.start()
+        stoppables.push(o, lfo)
+        nodes.push(g, depth)
+      })
+      const airSrc = startLoopingNoise(ctx, 'pink')
+      stoppables.push(airSrc)
+      const airFilter = ctx.createBiquadFilter()
+      airFilter.type = 'bandpass'
+      airFilter.frequency.value = 3600
+      airFilter.Q.value = 0.55
+      const air = ctx.createGain()
+      air.gain.value = 0.035
+      airSrc.connect(airFilter)
+      airFilter.connect(air)
+      air.connect(output)
+      nodes.push(airFilter, air)
+      break
+    }
     case 'bowls':
     case 'chimes':
     case 'temple': {
