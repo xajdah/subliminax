@@ -69,8 +69,10 @@ export interface MoodTrackDef {
   mood: MoodCategory
   name: string
   blurb: string
-  /** Procedural synth profile key */
+  /** Procedural synth profile key (used when audioSrc is absent) */
   profile: string
+  /** Optional looping audio file under /public (real music bed) */
+  audioSrc?: string
 }
 
 export interface AmbientDef {
@@ -223,7 +225,7 @@ export function createDefaultSession(): CreateSession {
     },
     soundtrack: {
       mood: 'calming',
-      trackId: 'velvet-horizon',
+      trackId: 'tranquility',
       volume: 0.62,
       customFileName: null,
     },

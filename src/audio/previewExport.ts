@@ -3,8 +3,10 @@
  * Renders a short audible audition of carrier + mood bed + optional script bed.
  */
 
+import { getTrack } from '../data/moodTracks'
 import { countWords } from '../services/scriptGenerator'
 import type { CreateSession } from '../types/studio'
+import { loadMoodAudio } from './moodAudio'
 
 function writeString(view: DataView, offset: number, str: string) {
   for (let i = 0; i < str.length; i++) view.setUint8(offset + i, str.charCodeAt(i))
@@ -81,7 +83,20 @@ export async function renderPreviewBuffer(
   session: CreateSession,
   seconds = 12,
 ): Promise<AudioBuffer> {
-  const sr = 44100
+  const track = getTrack(session.soundtrack.trackId)
+  let fileBuffer: AudioBuffer | null = null
+  if (track?.audioSrc) {
+    const probe = new AudioContext()
+    try {
+      fileBuffer = await loadMoodAudio(probe, track.audioSrc)
+    } catch {
+      fileBuffer = null
+    } finally {
+      await probe.close()
+    }
+  }
+
+  const sr = fileBuffer?.sampleRate ?? 44100
   const len = Math.floor(sr * seconds)
   const OfflineCtx =
     window.OfflineAudioContext ||
@@ -93,24 +108,32 @@ export async function renderPreviewBuffer(
   master.gain.value = Math.max(0.5, session.masterVolume)
   master.connect(offline.destination)
 
-  // Mood bed
+  // Mood bed — prefer decoded MP3 when available
   const mood = offline.createGain()
   mood.gain.value = session.soundtrack.volume * 0.7
   mood.connect(master)
-  const o1 = offline.createOscillator()
-  o1.type = 'sine'
-  o1.frequency.value = 110
-  const o2 = offline.createOscillator()
-  o2.type = 'triangle'
-  o2.frequency.value = 165
-  const g1 = offline.createGain()
-  g1.gain.value = 0.35
-  const g2 = offline.createGain()
-  g2.gain.value = 0.22
-  o1.connect(g1).connect(mood)
-  o2.connect(g2).connect(mood)
-  o1.start(0)
-  o2.start(0)
+  if (fileBuffer) {
+    const src = offline.createBufferSource()
+    src.buffer = fileBuffer
+    src.loop = true
+    src.connect(mood)
+    src.start(0)
+  } else {
+    const o1 = offline.createOscillator()
+    o1.type = 'sine'
+    o1.frequency.value = 110
+    const o2 = offline.createOscillator()
+    o2.type = 'triangle'
+    o2.frequency.value = 165
+    const g1 = offline.createGain()
+    g1.gain.value = 0.35
+    const g2 = offline.createGain()
+    g2.gain.value = 0.22
+    o1.connect(g1).connect(mood)
+    o2.connect(g2).connect(mood)
+    o1.start(0)
+    o2.start(0)
+  }
 
   // Carrier / entrainment
   const car = offline.createGain()

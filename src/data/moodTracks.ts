@@ -9,40 +9,73 @@ export const MOOD_LABELS: Record<MoodCategory, string> = {
 }
 
 export const MOOD_TRACKS: MoodTrackDef[] = [
-  // Calming
+  // Calming — real audio beds
+  {
+    id: 'tranquility',
+    mood: 'calming',
+    name: 'Tranquility',
+    blurb: 'Full audio bed · calm atmospheric music',
+    profile: 'warm-pad-slow',
+    audioSrc: '/audio/mood/calming/tranquility.mp3',
+  },
+  {
+    id: 'tranquil-stillness',
+    mood: 'calming',
+    name: 'Tranquil Stillness',
+    blurb: 'Full audio bed · still, spacious calm',
+    profile: 'liquid-arp',
+    audioSrc: '/audio/mood/calming/tranquil-stillness.mp3',
+  },
+  {
+    id: 'deep-calm-2',
+    mood: 'calming',
+    name: 'Deep Calm 2',
+    blurb: 'Full audio bed · deep restorative calm',
+    profile: 'warm-fifths',
+    audioSrc: '/audio/mood/calming/deep-calm-2.mp3',
+  },
+  {
+    id: 'deep-calm',
+    mood: 'calming',
+    name: 'Deep Calm',
+    blurb: 'Full audio bed · soft deep calm',
+    profile: 'pluck-pad',
+    audioSrc: '/audio/mood/calming/deep-calm.mp3',
+  },
+  // Calming — procedural synths
   {
     id: 'velvet-horizon',
     mood: 'calming',
     name: 'Velvet Horizon',
-    blurb: 'Slow warm pads & gentle low-pass drift',
+    blurb: 'Synth · slow warm pads & gentle low-pass drift',
     profile: 'warm-pad-slow',
   },
   {
     id: 'still-waters-drift',
     mood: 'calming',
     name: 'Still Waters Drift',
-    blurb: 'Soft liquid arpeggios & slow breathy chords',
+    blurb: 'Synth · soft liquid arpeggios & slow breathy chords',
     profile: 'liquid-arp',
   },
   {
     id: 'amber-dusk-sanctuary',
     mood: 'calming',
     name: 'Amber Dusk Sanctuary',
-    blurb: 'Warm fifths & tranquil release',
+    blurb: 'Synth · warm fifths & tranquil release',
     profile: 'warm-fifths',
   },
   {
     id: 'quiet-meadow-pulse',
     mood: 'calming',
     name: 'Quiet Meadow Pulse',
-    blurb: 'Soft plucked tones & serene pad',
+    blurb: 'Synth · soft plucked tones & serene pad',
     profile: 'pluck-pad',
   },
   {
     id: 'soft-breath-tide',
     mood: 'calming',
     name: 'Soft Breath Tide',
-    blurb: 'Slow swelling harmonic wash',
+    blurb: 'Synth · slow swelling harmonic wash',
     profile: 'swell-wash',
   },
   // Energizing
