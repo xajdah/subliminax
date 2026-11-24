@@ -90,13 +90,14 @@ export interface PsychoacousticState {
 export const DEFAULT_PSYCHO: PsychoacousticState = {
   buses: busesFromManifestation('standard'),
   spatial: {
-    externalizer: 0.35,
-    frontBehind: 0.2,
-    proximity: 0.25,
+    // Start cleared — Advanced tools “Add” engages each cue so Space 3D isn’t a constant buzz
+    externalizer: 0,
+    frontBehind: 0,
+    proximity: 0,
     proximityRate: 0.05,
-    orbitSpeed: 0.08,
+    orbitSpeed: 0,
     orbitMode: 'circular',
-    dualPan: 0.2,
+    dualPan: 0,
   },
   somatic: {
     chestBass: 0.15,
@@ -113,7 +114,8 @@ export const DEFAULT_PSYCHO: PsychoacousticState = {
     ultrasonicCarrierHz: 16000,
   },
   frequency: {
-    mode: 'binaural',
+    // Off until a Waves tool enables it — avoids a constant binaural “bzzz” on preview
+    mode: 'off',
     carrierHz: 200,
     beatHz: 6,
     solfeggioHz: 528,

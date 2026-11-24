@@ -237,16 +237,17 @@ export class PsychoacousticEngine {
     this.illusions = new IllusionTranceProcessor(ctx, this.state.illusions)
     this.neuro = new NeuroIllusionProcessor(ctx, this.state.neuro)
 
-    // Voice path: bus → illusions formant/dither → neuro → breath → spatial → sum
+    // Beds + voice → spatial (so Space 3D sliders are audible on the mix)
+    // Frequency stays direct so entrainment cues stay stable.
     this.buses.voice.out.connect(this.illusions.voiceIn)
     this.illusions.voiceOut.connect(this.neuro.voiceIn)
     this.neuro.voiceOut.connect(this.breath.voiceIn)
     this.breath.voiceOut.connect(this.spatial.input)
+    this.buses.music.out.connect(this.spatial.input)
+    this.buses.soundscape.out.connect(this.spatial.input)
     this.spatial.output.connect(this.sum)
 
-    // Music / soundscape / frequency → sum (+ somatic taps)
-    this.buses.music.out.connect(this.sum)
-    this.buses.soundscape.out.connect(this.sum)
+    // Frequency → sum (+ somatic taps)
     this.buses.frequency.out.connect(this.sum)
     this.somatic.connectTaps(this.buses.music.out, this.buses.frequency.out)
     this.somatic.output.connect(this.sum)
@@ -266,9 +267,10 @@ export class PsychoacousticEngine {
       voiceBaseDb: this.state.buses.voice,
     })
 
+    // Studio mix tap enters the spatial chain so Space 3D / tools shape the real mix
     this.mixTap = ctx.createGain()
     this.mixTap.gain.value = 1
-    this.mixTap.connect(this.sum)
+    this.mixTap.connect(this.spatial.input)
 
     this.sum.connect(this.limiter).connect(this.master).connect(ctx.destination)
 
@@ -319,13 +321,16 @@ export class PsychoacousticEngine {
     // Frequency entrainment
     this.rebuildFrequency(this.state.frequency)
 
-    // Voice: soft carrier (stands in for affirmations in studio demo)
+    // Voice: soft filtered tone (stands in for affirmations — avoid bare sine buzz)
     this.voiceGain = ctx.createGain()
-    this.voiceGain.gain.value = 0.35
+    this.voiceGain.gain.value = 0.22
     this.voiceOsc = ctx.createOscillator()
-    this.voiceOsc.type = 'sine'
-    this.voiceOsc.frequency.value = 220
-    this.voiceOsc.connect(this.voiceGain).connect(b.voice.input)
+    this.voiceOsc.type = 'triangle'
+    this.voiceOsc.frequency.value = 185
+    const voiceLp = ctx.createBiquadFilter()
+    voiceLp.type = 'lowpass'
+    voiceLp.frequency.value = 2400
+    this.voiceOsc.connect(voiceLp).connect(this.voiceGain).connect(b.voice.input)
     this.voiceOsc.start()
   }
 

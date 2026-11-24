@@ -16,6 +16,7 @@ import {
 import { applyOptimalMixLevels } from '../../data/mixLevels'
 import { savedMixStorage, titleForSession } from '../../services/savedMixStorage'
 import type { SavedMix } from '../../types/savedMix'
+import type { PsychoacousticState } from '../../types/psychoacoustic'
 import {
   BRAINWAVE_RANGES,
   CREATE_STEPS,
@@ -141,15 +142,22 @@ export function CreateSubliminal({ onHome, initialMix = null, onOpenSaved }: Pro
     }
   }
 
-  const previewWithTools = async () => {
+  const previewWithTools = async (overridePsycho?: PsychoacousticState) => {
+    const psychoState = overridePsycho ?? session.advancedPsycho
     await engine.play(session)
     const ctx = mixEngine.getContext()
     if (!psycho.playing) {
-      await psychoEngine.start({ withDemoSources: true, context: ctx ?? undefined })
+      // MixEngine already supplies the audible beds — skip demo oscillators (they were the buzz)
+      await psychoEngine.start({ withDemoSources: false, context: ctx ?? undefined })
     }
-    psychoEngine.applyPreset(session.advancedPsycho)
+    psychoEngine.applyPreset(psychoState)
     const tap = psychoEngine.getMixTap()
     if (tap) mixEngine.connectAdvancedTap(tap)
+  }
+
+  const applyAdvancedLive = (advancedPsycho: PsychoacousticState) => {
+    patch({ advancedPsycho })
+    if (psycho.playing) psychoEngine.applyPreset(advancedPsycho)
   }
 
   const stopPreview = () => {
@@ -464,6 +472,7 @@ export function CreateSubliminal({ onHome, initialMix = null, onOpenSaved }: Pro
           onIsolateVoice={psycho.setIsolateVoice}
           onCheckMasking={psycho.setCheckMasking}
           onPreview={previewWithTools}
+          onApplyAdvanced={applyAdvancedLive}
           onStopPreview={stopPreview}
           onComplete={completeTrack}
           onOpenSaved={onOpenSaved}
@@ -982,6 +991,7 @@ function MixStep({
   onIsolateVoice,
   onCheckMasking,
   onPreview,
+  onApplyAdvanced,
   onStopPreview,
   onComplete,
   onOpenSaved,
@@ -1006,7 +1016,8 @@ function MixStep({
   checkMasking: boolean
   onIsolateVoice: (on: boolean) => void
   onCheckMasking: (on: boolean) => void
-  onPreview: () => void
+  onPreview: (overridePsycho?: PsychoacousticState) => void
+  onApplyAdvanced: (advancedPsycho: PsychoacousticState) => void
   onStopPreview: () => void
   onComplete: () => void
   onOpenSaved?: () => void
@@ -1097,7 +1108,7 @@ function MixStep({
             Play base mix
           </button>
           {!psychoPlaying ? (
-            <button type="button" className="btn btn-teal" onClick={onPreview}>
+            <button type="button" className="btn btn-teal" onClick={() => onPreview()}>
               Preview with tools
             </button>
           ) : (
@@ -1127,7 +1138,7 @@ function MixStep({
       <section className="panel space-y-4 p-5">
         <AdvancedEngineeringPanel
           advanced={session.advancedPsycho}
-          onChange={(advancedPsycho) => onPatch({ advancedPsycho })}
+          onChange={onApplyAdvanced}
           analysers={analysers}
           enginePlaying={psychoPlaying}
           onPreview={onPreview}
