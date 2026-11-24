@@ -175,6 +175,10 @@ export interface CreateSession {
   /** Advanced DSP tools applied on Mix / preview */
   advancedPsycho: PsychoacousticState
   masterVolume: number
+  /** Scales all enabled ambient layers */
+  ambientBusGain: number
+  /** True when Optimal mix levels preset is active */
+  optimalLevels: boolean
   lengthMinutes: number
   /** Set when user finishes the create flow */
   completed?: boolean
@@ -221,12 +225,12 @@ export function createDefaultSession(): CreateSession {
       progressiveRamp: false,
       rampStartHz: 10,
       rampEndHz: 4,
-      volume: 0.32,
+      volume: 0.2,
     },
     soundtrack: {
       mood: 'calming',
       trackId: 'tranquility',
-      volume: 0.62,
+      volume: 0.48,
       customFileName: null,
     },
     ambients: [],
@@ -236,7 +240,7 @@ export function createDefaultSession(): CreateSession {
       rate: 0.92,
       pitch: 1,
       loopPauseMs: 2800,
-      volume: 0.9,
+      volume: 0.62,
       narratorId: 'serene-calm',
       cloneProfileId: 'local-soft',
       hasRecording: false,
@@ -252,7 +256,9 @@ export function createDefaultSession(): CreateSession {
       driftRate: 0.08,
     },
     advancedPsycho: structuredClone(DEFAULT_PSYCHO),
-    masterVolume: 0.92,
+    masterVolume: 0.8,
+    ambientBusGain: 0.36,
+    optimalLevels: true,
     lengthMinutes: 20,
     completed: false,
   }

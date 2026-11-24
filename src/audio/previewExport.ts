@@ -3,6 +3,7 @@
  * Renders a short audible audition of carrier + mood bed + optional script bed.
  */
 
+import { FILE_BED_GAIN } from '../data/mixLevels'
 import { getTrack } from '../data/moodTracks'
 import { countWords } from '../services/scriptGenerator'
 import type { CreateSession } from '../types/studio'
@@ -108,9 +109,11 @@ export async function renderPreviewBuffer(
   master.gain.value = Math.max(0.5, session.masterVolume)
   master.connect(offline.destination)
 
-  // Mood bed — prefer decoded MP3 when available
+  // Mood bed — prefer decoded MP3 when available (with same headroom as live mix)
   const mood = offline.createGain()
-  mood.gain.value = session.soundtrack.volume * 0.7
+  mood.gain.value = fileBuffer
+    ? session.soundtrack.volume * FILE_BED_GAIN
+    : session.soundtrack.volume * 0.7
   mood.connect(master)
   if (fileBuffer) {
     const src = offline.createBufferSource()

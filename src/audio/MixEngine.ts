@@ -1,4 +1,5 @@
 import { AMBIENTS } from '../data/ambients'
+import { effectiveTrackGain } from '../data/mixLevels'
 import { getTrack } from '../data/moodTracks'
 import { NARRATOR_PRESETS } from '../data/narrators'
 import { voiceCloneService } from '../services/voiceCloneService'
@@ -28,11 +29,12 @@ export class MixEngine {
   private ctx: AudioContext | null = null
   private master: GainNode | null = null
   private analyser: AnalyserNode | null = null
+  private limiter: DynamicsCompressorNode | null = null
   private duckBus: GainNode | null = null
   private spatialPan: StereoPannerNode | null = null
   private hrtf: PannerNode | null = null
   private transport: TransportState = 'stopped'
-  private masterVolume = 0.92
+  private masterVolume = 0.8
   private listeners = new Set<Listener>()
   private mood: MoodSynthHandle | null = null
   private ambients = new Map<string, AmbientHandle>()
@@ -76,6 +78,12 @@ export class MixEngine {
     this.master.gain.value = this.masterVolume
     this.analyser = this.ctx.createAnalyser()
     this.analyser.fftSize = 2048
+    this.limiter = this.ctx.createDynamicsCompressor()
+    this.limiter.threshold.value = -14
+    this.limiter.knee.value = 22
+    this.limiter.ratio.value = 8
+    this.limiter.attack.value = 0.003
+    this.limiter.release.value = 0.22
     this.duckBus = this.ctx.createGain()
     this.spatialPan = this.ctx.createStereoPanner()
     this.hrtf = this.ctx.createPanner()
@@ -84,7 +92,8 @@ export class MixEngine {
     this.duckBus.connect(this.spatialPan)
     this.spatialPan.connect(this.master)
     this.master.connect(this.analyser)
-    this.analyser.connect(this.ctx.destination)
+    this.analyser.connect(this.limiter)
+    this.limiter.connect(this.ctx.destination)
     return this.ctx
   }
 
@@ -98,28 +107,18 @@ export class MixEngine {
 
   /** Feed the finished mix into an external DSP tap (PsychoacousticEngine) */
   connectAdvancedTap(node: AudioNode | null) {
-    if (!this.master) return
+    if (!this.analyser) return
     try {
-      this.master.disconnect()
+      this.analyser.disconnect()
     } catch {
       /* ignore */
     }
-    if (this.analyser) {
-      this.master.connect(this.analyser)
-      try {
-        this.analyser.disconnect()
-      } catch {
-        /* ignore */
-      }
-      if (node) {
-        this.analyser.connect(node)
-      } else if (this.ctx) {
-        this.analyser.connect(this.ctx.destination)
-      }
-    } else if (node) {
-      this.master.connect(node)
+    if (node) {
+      this.analyser.connect(node)
+    } else if (this.limiter) {
+      this.analyser.connect(this.limiter)
     } else if (this.ctx) {
-      this.master.connect(this.ctx.destination)
+      this.analyser.connect(this.ctx.destination)
     }
   }
 
@@ -133,8 +132,53 @@ export class MixEngine {
   }
 
   sync(session: CreateSession) {
+    const prev = this.session
     this.session = session
-    if (this.transport === 'playing') void this.rebuildLive()
+    if (this.transport !== 'playing') return
+    if (prev && this.canApplyLiveLevels(prev, session)) {
+      this.applyLiveLevels(session)
+      return
+    }
+    void this.rebuildLive()
+  }
+
+  private canApplyLiveLevels(a: CreateSession, b: CreateSession): boolean {
+    const ambKey = (s: CreateSession) =>
+      s.ambients
+        .map((x) => `${x.id}:${x.enabled ? 1 : 0}`)
+        .sort()
+        .join('|')
+    return (
+      a.soundtrack.trackId === b.soundtrack.trackId &&
+      a.frequency.entrainment === b.frequency.entrainment &&
+      a.frequency.hz === b.frequency.hz &&
+      a.frequency.band === b.frequency.band &&
+      a.frequency.beatHz === b.frequency.beatHz &&
+      a.frequency.harmonicShimmer === b.frequency.harmonicShimmer &&
+      a.psycho.spatial === b.psycho.spatial &&
+      a.psycho.driftRate === b.psycho.driftRate &&
+      a.voice.mode === b.voice.mode &&
+      ambKey(a) === ambKey(b)
+    )
+  }
+
+  private applyLiveLevels(session: CreateSession) {
+    const ctx = this.ctx
+    if (!ctx) return
+    this.setMasterVolume(session.masterVolume)
+    const track = getTrack(session.soundtrack.trackId)
+    if (this.mood) {
+      const g = effectiveTrackGain(session.soundtrack.volume, !!track?.audioSrc)
+      this.mood.output.gain.setTargetAtTime(g, ctx.currentTime, 0.04)
+    }
+    if (this.carrierGain) {
+      this.carrierGain.gain.setTargetAtTime(session.frequency.volume, ctx.currentTime, 0.04)
+    }
+    const bus = session.ambientBusGain ?? 1
+    session.ambients.forEach((layer) => {
+      const h = this.ambients.get(layer.id)
+      if (h && layer.enabled) h.setGain(layer.gain * bus)
+    })
   }
 
   async play(session: CreateSession) {
@@ -213,12 +257,13 @@ export class MixEngine {
     if (gen !== this.graphGen) return
 
     // Ambients
+    const ambientBus = session.ambientBusGain ?? 1
     session.ambients
       .filter((a) => a.enabled)
       .forEach((a) => {
         const def = AMBIENTS.find((d) => d.id === a.id)
         if (!def) return
-        const h = startAmbient(ctx, def.profile, a.gain)
+        const h = startAmbient(ctx, def.profile, a.gain * ambientBus)
         h.output.connect(this.duckBus!)
         this.ambients.set(a.id, h)
       })
@@ -451,9 +496,10 @@ export class MixEngine {
 
   updateAmbients(layers: AmbientLayerState[]) {
     if (!this.session || this.transport !== 'playing') return
+    const bus = this.session.ambientBusGain ?? 1
     layers.forEach((l) => {
       const h = this.ambients.get(l.id)
-      if (h && l.enabled) h.setGain(l.gain)
+      if (h && l.enabled) h.setGain(l.gain * bus)
     })
   }
 }
