@@ -331,17 +331,29 @@ body {
   pointer-events: none;
   position: absolute;
   inset: 0;
+  /* Bronze → charcoal-teal split banner (layout ref) */
   background:
-    radial-gradient(900px 520px at 12% 40%, rgba(186, 110, 57, 0.28), transparent 58%),
-    radial-gradient(800px 480px at 88% 45%, rgba(3, 88, 100, 0.45), transparent 55%),
-    radial-gradient(700px 400px at 50% 110%, rgba(20, 184, 166, 0.12), transparent 50%),
+    radial-gradient(720px 480px at 8% 42%, rgba(186, 110, 57, 0.34), transparent 62%),
+    radial-gradient(780px 520px at 92% 48%, rgba(3, 88, 100, 0.5), transparent 58%),
     linear-gradient(
-      118deg,
-      #1a100c 0%,
-      #121816 38%,
-      #0a1518 68%,
+      105deg,
+      #1c100c 0%,
+      #141210 28%,
+      #0c1416 62%,
       #041218 100%
     );
+}
+
+.hero-banner {
+  position: relative;
+}
+
+.hero-brand-mark {
+  letter-spacing: -0.02em;
+}
+
+.hero-support {
+  opacity: 0.92;
 }
 
 .hero-grain {
@@ -413,9 +425,19 @@ body {
 }
 
 .sx-logo--hero {
-  width: min(80vw, 420px);
+  width: min(78vw, 460px);
   height: auto;
   aspect-ratio: 1;
+}
+
+@media (min-width: 1024px) {
+  .sx-logo--hero {
+    width: min(42vw, 520px);
+  }
+
+  .hero-emblem {
+    min-height: min(68vh, 560px);
+  }
 }
 
 .sx-logo-rings-breathe,

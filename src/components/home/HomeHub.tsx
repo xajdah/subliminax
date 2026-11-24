@@ -57,57 +57,58 @@ export function HomeHub({ onNavigate }: Props) {
   const { theme, toggleTheme } = useTheme()
 
   return (
-    <div className="hero-shell relative isolate min-h-screen overflow-hidden">
+    <div className="hero-shell relative isolate overflow-x-hidden">
       <div className="hero-atmosphere" aria-hidden />
       <div className="hero-grain" aria-hidden />
 
-      <header className="relative z-10 flex flex-wrap items-center justify-between gap-4 px-6 py-5 sm:px-10 lg:px-14">
-        <div className="flex items-center gap-3">
-          <SubliminaXLogo size="nav" className="shrink-0" />
-          <p className="font-display text-xl font-extrabold tracking-tight">
-            Sublimina<span className="text-teal">x</span>
-          </p>
-        </div>
-        <div className="flex items-center gap-2">
+      {/* First viewport: one split composition — brand/copy left, DNA emblem right */}
+      <div className="hero-banner relative z-10 flex min-h-[100svh] flex-col">
+        <header className="flex flex-wrap items-center justify-between gap-4 px-6 py-5 sm:px-10 lg:px-14">
+          <div className="flex items-center gap-3">
+            <SubliminaXLogo size="nav" className="shrink-0" />
+            <p className="font-display text-lg font-extrabold tracking-tight sm:text-xl">
+              Sublimina<span className="text-teal">x</span>
+            </p>
+          </div>
           <ThemeToggle theme={theme} onToggle={toggleTheme} />
-        </div>
-      </header>
+        </header>
 
-      <main className="relative z-10 mx-auto grid max-w-7xl items-center gap-10 px-6 pb-16 pt-6 sm:px-10 lg:grid-cols-2 lg:px-14">
-        <section className="animate-rise max-w-xl">
-          <p className="mb-5 font-display text-sm font-semibold uppercase tracking-[0.22em] text-bronze-soft">
-            Sublimina<span className="text-teal">x</span>
-          </p>
-          <h1 className="font-display text-[clamp(2.35rem,5.5vw,3.85rem)] font-extrabold leading-[1.05] tracking-[-0.03em] text-ink">
-            <span className="block">Inner Shifts,</span>
-            <span className="hero-engineered block">Engineered.</span>
-          </h1>
-          <p className="mt-6 font-display text-[clamp(1.15rem,2.4vw,1.65rem)] font-semibold tracking-tight text-ink">
-            Vibrate{' '}
-            <span className="hero-tagline-blend">Higher. Think Clearer.</span>
-          </p>
-          <p className="mt-5 max-w-md text-base leading-relaxed text-muted sm:text-lg">
-            Precision psychoacoustics, healing frequencies, ambient beds, and personalized or
-            cloned voice affirmations — all in one studio.
-          </p>
-          <button
-            type="button"
-            className="btn btn-primary mt-8 px-7 py-3 text-base"
-            onClick={() => onNavigate('create')}
+        <main className="hero-split mx-auto grid w-full max-w-7xl flex-1 items-center gap-8 px-6 pb-10 pt-2 sm:px-10 lg:grid-cols-2 lg:gap-6 lg:px-14 lg:pb-14">
+          <section className="animate-rise hero-copy max-w-xl justify-self-start text-left">
+            <p className="hero-brand-mark mb-6 font-display text-[clamp(1.65rem,3.8vw,2.35rem)] font-extrabold tracking-tight text-ink">
+              Sublimina<span className="text-teal">x</span>
+            </p>
+            <h1 className="font-display text-[clamp(2.4rem,5.8vw,4rem)] font-extrabold leading-[1.04] tracking-[-0.03em] text-ink">
+              <span className="block">Inner Shifts,</span>
+              <span className="hero-engineered block">Engineered.</span>
+            </h1>
+            <p className="mt-6 font-display text-[clamp(1.2rem,2.6vw,1.75rem)] font-semibold tracking-tight text-ink">
+              Vibrate{' '}
+              <span className="hero-tagline-blend">Higher. Think Clearer.</span>
+            </p>
+            <p className="hero-support mt-5 max-w-md font-display text-base font-medium tracking-tight text-muted sm:text-lg">
+              Sculpt Your Subconscious. <span className="text-ink/80">Own Your Frequency.</span>
+            </p>
+            <button
+              type="button"
+              className="btn btn-primary mt-8 px-7 py-3 text-base"
+              onClick={() => onNavigate('create')}
+            >
+              Create Subliminal
+            </button>
+          </section>
+
+          <section
+            className="hero-emblem relative flex items-center justify-center lg:justify-center"
+            aria-label="SubliminaX emblem"
           >
-            Create Subliminal
-          </button>
-        </section>
+            <SubliminaXLogo size="hero" className="hero-mark-img relative z-10" />
+          </section>
+        </main>
+      </div>
 
-        <section
-          className="relative flex justify-center lg:justify-end"
-          aria-label="SubliminaX emblem"
-        >
-          <SubliminaXLogo size="hero" className="hero-mark-img relative z-10" />
-        </section>
-      </main>
-
-      <section className="relative z-10 mx-auto max-w-7xl px-6 pb-20 sm:px-10 lg:px-14">
+      {/* Hub cards — below the first viewport only */}
+      <section className="relative z-10 mx-auto max-w-7xl px-6 pb-20 pt-4 sm:px-10 lg:px-14">
         <h2 className="panel-title mb-4 text-lg text-ink">Studio hub</h2>
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
           {CARDS.map((card) => (
