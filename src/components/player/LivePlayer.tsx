@@ -5,7 +5,6 @@ import { STUDIO_PRESETS } from '../../data/studioPresets'
 import { usePsychoEngine } from '../../hooks/usePsychoEngine'
 import { useTheme } from '../../hooks/useTheme'
 import { FocusShieldPanel } from '../FocusShieldPanel'
-import { GanzfeldEntrainmentOverlay } from '../GanzfeldEntrainmentOverlay'
 import { MixBalanceDeck } from '../MixBalanceDeck'
 import { SubliminaXLogo } from '../shared/SubliminaXLogo'
 import { ThemeToggle } from '../ThemeToggle'
@@ -16,12 +15,14 @@ interface Props {
   onHome: () => void
 }
 
-/** Live Player — X-Ray, tuners, and Ganzfeld Visual Sync launch. */
+/**
+ * Legacy live psycho demo (unused by Home routing).
+ * Home → Subliminal Player opens saved mixes; Ganzfeld is its own hub card.
+ */
 export function LivePlayer({ onHome }: Props) {
   const { theme, toggleTheme } = useTheme()
   const eng = usePsychoEngine()
   const maskDb = eng.state.buses.music + eng.state.breath.envelopeMaskDb
-  const [ganzfeldOpen, setGanzfeldOpen] = useState(false)
   const [calMode, setCalMode] = useState<ManifestationMode>('standard')
 
   useEffect(() => {
@@ -43,7 +44,7 @@ export function LivePlayer({ onHome }: Props) {
             <p className="font-display text-lg font-bold">
               Sublimina<span className="text-teal">x</span> Player
             </p>
-            <p className="text-xs text-muted">Live entrainment · Focus Shield · Ganzfeld</p>
+            <p className="text-xs text-muted">Live entrainment · Focus Shield · X-Ray</p>
           </div>
         </div>
         <div className="flex items-center gap-2">
@@ -119,10 +120,6 @@ export function LivePlayer({ onHome }: Props) {
             checkMasking={eng.state.checkMasking}
             onIsolateVoice={eng.setIsolateVoice}
             onCheckMasking={eng.setCheckMasking}
-            onOpenGanzfeld={() => {
-              if (!eng.playing) void eng.start()
-              setGanzfeldOpen(true)
-            }}
           />
         </div>
 
@@ -132,8 +129,6 @@ export function LivePlayer({ onHome }: Props) {
           onBusDb={eng.setBusDb}
         />
       </main>
-
-      <GanzfeldEntrainmentOverlay open={ganzfeldOpen} onClose={() => setGanzfeldOpen(false)} />
     </div>
   )
 }

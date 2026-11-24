@@ -6,7 +6,6 @@ import {
   type ToolGroup,
 } from '../../data/advancedTools'
 import type { PsychoacousticState } from '../../types/psychoacoustic'
-import { GanzfeldEntrainmentOverlay } from '../GanzfeldEntrainmentOverlay'
 import { SubliminalXRay } from '../psycho/SubliminalXRay'
 import type { BusAnalysers } from '../../audio/PsychoacousticEngine'
 
@@ -58,7 +57,6 @@ export function AdvancedEngineeringPanel({
   onCheckMasking,
 }: Props) {
   const [group, setGroup] = useState<ToolGroup>('space')
-  const [ganzfeldOpen, setGanzfeldOpen] = useState(false)
   const tools = useMemo(() => ADVANCED_TOOLS.filter((t) => t.group === group), [group])
 
   const setTool = (tool: AdvancedToolDef, value: number | boolean) => {
@@ -75,7 +73,7 @@ export function AdvancedEngineeringPanel({
           <h3 className="panel-title text-base">Advanced Audio Engineering</h3>
           <p className="mt-1 max-w-xl text-sm text-muted">
             Add psychoacoustic tools to this track. Each effect includes a plain-language description.
-            Preview anytime — then complete when it feels right.
+            Preview anytime — then complete when it feels right. Ganzfeld lives on the Home hub.
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
@@ -101,13 +99,7 @@ export function AdvancedEngineeringPanel({
         checkMasking={checkMasking}
         onIsolateVoice={onIsolateVoice}
         onCheckMasking={onCheckMasking}
-        onOpenGanzfeld={() => {
-          if (!enginePlaying) onPreview()
-          setGanzfeldOpen(true)
-        }}
       />
-
-      <GanzfeldEntrainmentOverlay open={ganzfeldOpen} onClose={() => setGanzfeldOpen(false)} />
 
       <div className="flex flex-wrap gap-1">
         {ADVANCED_TOOL_GROUPS.map((g) => (

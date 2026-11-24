@@ -14,6 +14,7 @@ export type AppView =
   | 'vision'
   | 'remscribe'
   | 'player'
+  | 'ganzfeld'
   | 'aurevia'
 export type TransportState = 'stopped' | 'playing' | 'paused'
 
