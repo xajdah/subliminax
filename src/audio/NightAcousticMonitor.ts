@@ -15,6 +15,15 @@ import {
   type DreamLog,
 } from '../types/remscribe'
 
+export interface NightLiveFeatures {
+  rms: number
+  rmsEma: number
+  breathRateEst: number
+  spike: boolean
+  stillnessSec: number
+  recentKinds: AcousticEventKind[]
+}
+
 export interface NightMonitorCallbacks {
   onEvent?: (event: AcousticEvent) => void
   onDream?: (dream: DreamLog) => void
@@ -22,6 +31,10 @@ export interface NightMonitorCallbacks {
   onDreamCapturing?: (active: boolean) => void
   onSpeechPartial?: (text: string) => void
   onError?: (msg: string) => void
+  /** Live mic features for REM window detector (~every frame). */
+  onFeatures?: (f: NightLiveFeatures) => void
+  /** Sudden arousal during/after a lucid cue window. */
+  onArousalSpike?: (info: { kind: AcousticEventKind | 'rmsSpike'; rms: number }) => void
 }
 
 type SpeechRec = {
@@ -190,6 +203,13 @@ export class NightAcousticMonitor {
   private timeBuf = new Float32Array(0)
   private freqBuf = new Float32Array(0)
   private rmsEma = 0
+  private recentKinds: AcousticEventKind[] = []
+  private lastLoudAt = 0
+  private breathIntervals: number[] = []
+  private lastBreathPeakAt = 0
+  private breathRateEst = 14
+  private dreamSensitivityUntil = 0
+  private arousalWatchUntil = 0
 
   configure(language: DreamLanguageCode, cbs?: NightMonitorCallbacks) {
     this.language = language
@@ -202,6 +222,29 @@ export class NightAcousticMonitor {
 
   isDreamCapturing() {
     return this.dreamCapturing
+  }
+
+  getLiveFeatures(): NightLiveFeatures {
+    const now = Date.now()
+    const stillnessSec = this.lastLoudAt > 0 ? Math.max(0, (now - this.lastLoudAt) / 1000) : 120
+    return {
+      rms: 0,
+      rmsEma: this.rmsEma,
+      breathRateEst: this.breathRateEst,
+      spike: false,
+      stillnessSec,
+      recentKinds: [...this.recentKinds],
+    }
+  }
+
+  /** Heighten wake-word dream capture for N minutes after a REM lucid cue. */
+  primeDreamCapture(minutes = 10) {
+    this.dreamSensitivityUntil = Date.now() + minutes * 60 * 1000
+  }
+
+  /** Watch for arousal spikes for the next N ms (cue abort window). */
+  watchArousal(ms = 5000) {
+    this.arousalWatchUntil = Date.now() + ms
   }
 
   async start(language: DreamLanguageCode, sessionStartMs: number, cbs?: NightMonitorCallbacks) {
@@ -257,17 +300,54 @@ export class NightAcousticMonitor {
     const f = analyzeFrame(this.timeBuf, mags, this.ctx.sampleRate)
     this.rmsEma = this.rmsEma * 0.92 + f.rms * 0.08
     const spike = f.rms > this.rmsEma * 2.8 && f.rms > 0.06
+    const now = Date.now()
+    if (f.rms > 0.045) this.lastLoudAt = now
+
+    // Rough breath-rate from envelope peaks (16–22 bpm REM irregularity band)
+    if (f.rms > this.rmsEma * 1.35 && f.rms > 0.025) {
+      if (this.lastBreathPeakAt > 0) {
+        const gap = now - this.lastBreathPeakAt
+        if (gap > 1500 && gap < 8000) {
+          this.breathIntervals.push(gap)
+          if (this.breathIntervals.length > 8) this.breathIntervals.shift()
+          const avg =
+            this.breathIntervals.reduce((a, b) => a + b, 0) / this.breathIntervals.length
+          this.breathRateEst = 60000 / avg
+        }
+      }
+      this.lastBreathPeakAt = now
+    }
+
+    const stillnessSec = this.lastLoudAt > 0 ? Math.max(0, (now - this.lastLoudAt) / 1000) : 120
+    this.cbs.onFeatures?.({
+      rms: f.rms,
+      rmsEma: this.rmsEma,
+      breathRateEst: this.breathRateEst,
+      spike,
+      stillnessSec,
+      recentKinds: [...this.recentKinds],
+    })
+
+    if (now < this.arousalWatchUntil && (spike || f.rms > 0.14)) {
+      const kind = classifyFeatures(f, spike)
+      this.cbs.onArousalSpike?.({
+        kind: kind ?? 'rmsSpike',
+        rms: f.rms,
+      })
+    }
 
     if (!this.dreamCapturing) {
       const kind = classifyFeatures(f, spike)
       if (kind) void this.emitEvent(kind, f.rms)
     } else {
       // During dream capture, silence detection for 6s stop
+      // Heightened sensitivity after lucid cue → shorter silence stop (4.5s)
+      const silenceMs = now < this.dreamSensitivityUntil ? 4500 : 6000
       if (f.rms < 0.02) {
         if (this.silenceTimer == null) {
           this.silenceTimer = window.setTimeout(() => {
             void this.finishDreamCapture()
-          }, 6000)
+          }, silenceMs)
         }
       } else if (this.silenceTimer != null) {
         window.clearTimeout(this.silenceTimer)
@@ -280,8 +360,15 @@ export class NightAcousticMonitor {
 
   private async emitEvent(kind: AcousticEventKind, confidenceRaw: number) {
     const now = Date.now()
-    if (now - this.lastEventAt < this.eventCooldownMs) return
+    const cooldown =
+      now < this.dreamSensitivityUntil && (kind === 'sleepTalking' || kind === 'humanTalking')
+        ? 4000
+        : this.eventCooldownMs
+    if (now - this.lastEventAt < cooldown) return
     this.lastEventAt = now
+
+    this.recentKinds.push(kind)
+    if (this.recentKinds.length > 12) this.recentKinds.shift()
 
     const clip = await this.captureClip(Math.min(10, Math.max(5, 6 + confidenceRaw * 4)))
     const event: AcousticEvent = {

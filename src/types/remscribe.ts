@@ -47,6 +47,7 @@ export type AcousticEventKind =
   | 'gasping'
   | 'restlessMovement'
   | 'dreamRecorded'
+  | 'lucidCue'
 
 export const ACOUSTIC_EVENT_LABELS: Record<AcousticEventKind, string> = {
   snoring: 'Snoring',
@@ -58,6 +59,46 @@ export const ACOUSTIC_EVENT_LABELS: Record<AcousticEventKind, string> = {
   gasping: 'Gasping / Apnea Spike',
   restlessMovement: 'Restless Movement',
   dreamRecorded: 'Dream Recorded',
+  lucidCue: '✨ Lucid Cue Fired',
+}
+
+export type LucidCueKind = 'chime528' | 'bowl432' | 'whisper'
+
+export interface LucidCueConfig {
+  enabled: boolean
+  cueKind: LucidCueKind
+  whisperPhrase: string
+  /** Sub-awakening ceiling as fraction 0.10–0.50 of unity → mapped to ~−30…−12 dBFS */
+  ceilingPct: number
+  linkedGoalId: string | null
+  linkedGoalTitle: string | null
+  linkedAffirmation: string | null
+  realityChecksCompleted: number
+}
+
+export type LucidCueOutcome = 'completed' | 'aborted'
+
+export interface LucidCueEvent {
+  id: string
+  timestamp: number
+  relativeSec: number
+  confidence: number
+  ultradianPeakMin: number | null
+  outcome: LucidCueOutcome
+  abortReason?: string
+}
+
+export function defaultLucidCueConfig(): LucidCueConfig {
+  return {
+    enabled: false,
+    cueKind: 'chime528',
+    whisperPhrase: 'You are dreaming—look at your hands',
+    ceilingPct: 0.25,
+    linkedGoalId: null,
+    linkedGoalTitle: null,
+    linkedAffirmation: null,
+    realityChecksCompleted: 0,
+  }
 }
 
 export type SleepStage = 'awake' | 'light' | 'deep' | 'rem'
@@ -82,6 +123,26 @@ export interface DreamLog {
   clipUrl?: string
   clipDurationSec?: number
   interpretation?: DreamInterpretation
+}
+
+/** Correlate lucid cues with dreams recorded within 45 minutes after cue. */
+export function lucidCueEffectivenessScore(
+  cues: LucidCueEvent[],
+  dreams: DreamLog[],
+): number {
+  if (cues.length === 0) return 0
+  const completed = cues.filter((c) => c.outcome === 'completed')
+  if (completed.length === 0) return Math.round((0 / Math.max(1, cues.length)) * 40)
+  let hits = 0
+  for (const c of completed) {
+    const linked = dreams.some(
+      (d) => d.relativeSec >= c.relativeSec && d.relativeSec - c.relativeSec <= 45 * 60,
+    )
+    if (linked) hits++
+  }
+  const completionRate = completed.length / cues.length
+  const hitRate = hits / completed.length
+  return Math.round(completionRate * 45 + hitRate * 55)
 }
 
 export interface DreamInterpretation {
@@ -115,6 +176,7 @@ export interface RemScribeSessionConfig {
   language: DreamLanguageCode
   linkedAffirmations: string[]
   linkedGoalNames: string[]
+  lucidCue: LucidCueConfig
 }
 
 export interface RemScribeSession {
@@ -126,6 +188,7 @@ export interface RemScribeSession {
   dreams: DreamLog[]
   hypnogram: HypnogramSample[]
   metrics: SleepMetrics | null
+  lucidCues: LucidCueEvent[]
   status: 'setup' | 'running' | 'ended'
 }
 

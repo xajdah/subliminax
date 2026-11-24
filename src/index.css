@@ -751,3 +751,32 @@ body {
     transition: none;
   }
 }
+
+/* —— Lucid Dream Cueing primer —— */
+.lucid-primer-root {
+  position: fixed;
+  inset: 0;
+  z-index: 90;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+}
+
+.lucid-primer-backdrop {
+  position: absolute;
+  inset: 0;
+  border: 0;
+  background: color-mix(in oklab, #000 60%, transparent);
+  cursor: pointer;
+}
+
+.lucid-primer-panel {
+  position: relative;
+  z-index: 1;
+  width: min(560px, 100%);
+  max-height: min(90vh, 880px);
+  overflow: auto;
+  padding: 1.25rem 1.35rem 1.4rem;
+  box-shadow: 0 24px 64px rgba(0, 0, 0, 0.4);
+}
