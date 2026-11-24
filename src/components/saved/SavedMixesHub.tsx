@@ -1,8 +1,6 @@
 import { useEffect, useState } from 'react'
-import { mixEngine } from '../../audio/MixEngine'
 import { downloadPreviewWav } from '../../audio/previewExport'
 import { getTrack } from '../../data/moodTracks'
-import { useMixEngine } from '../../hooks/useMixEngine'
 import { useTheme } from '../../hooks/useTheme'
 import { savedMixStorage } from '../../services/savedMixStorage'
 import type { SavedMix } from '../../types/savedMix'
@@ -12,6 +10,7 @@ interface Props {
   onHome: () => void
   onEdit: (mix: SavedMix) => void
   onCreate: () => void
+  onPlayInPlayer: (mix: SavedMix) => void
 }
 
 function formatWhen(ts: number): string {
@@ -25,32 +24,13 @@ function formatWhen(ts: number): string {
   }
 }
 
-export function SavedMixesHub({ onHome, onEdit, onCreate }: Props) {
+export function SavedMixesHub({ onHome, onEdit, onCreate, onPlayInPlayer }: Props) {
   const { theme, toggleTheme } = useTheme()
-  const engine = useMixEngine()
   const [mixes, setMixes] = useState<SavedMix[]>(() => savedMixStorage.list())
-  const [playingId, setPlayingId] = useState<string | null>(null)
   const [exportingId, setExportingId] = useState<string | null>(null)
   const [note, setNote] = useState<string | null>(null)
 
   useEffect(() => savedMixStorage.subscribe(setMixes), [])
-
-  useEffect(() => {
-    if (engine.transport === 'stopped' || engine.transport === 'paused') {
-      setPlayingId(null)
-    }
-  }, [engine.transport])
-
-  const playMix = async (mix: SavedMix) => {
-    setNote(null)
-    await mixEngine.play(mix.session)
-    setPlayingId(mix.id)
-  }
-
-  const stopPlay = () => {
-    mixEngine.stop()
-    setPlayingId(null)
-  }
 
   const exportMix = async (mix: SavedMix) => {
     if (exportingId) return
@@ -69,7 +49,6 @@ export function SavedMixesHub({ onHome, onEdit, onCreate }: Props) {
 
   const removeMix = (mix: SavedMix) => {
     if (!window.confirm(`Delete “${mix.title}” from Saved Tracks?`)) return
-    if (playingId === mix.id) stopPlay()
     savedMixStorage.remove(mix.id)
     setNote(`Removed “${mix.title}”.`)
     window.setTimeout(() => setNote(null), 4000)
@@ -117,7 +96,6 @@ export function SavedMixesHub({ onHome, onEdit, onCreate }: Props) {
           {mixes.map((mix) => {
             const track = getTrack(mix.session.soundtrack.trackId)
             const ambientsOn = mix.session.ambients.filter((a) => a.enabled).length
-            const isPlaying = playingId === mix.id && engine.transport === 'playing'
             return (
               <li key={mix.id} className="panel p-4 sm:p-5">
                 <div className="flex flex-wrap items-start gap-3">
@@ -135,19 +113,13 @@ export function SavedMixesHub({ onHome, onEdit, onCreate }: Props) {
                     ) : null}
                   </div>
                   <div className="flex flex-wrap gap-2">
-                    {isPlaying ? (
-                      <button type="button" className="btn btn-ghost" onClick={stopPlay}>
-                        Stop
-                      </button>
-                    ) : (
-                      <button
-                        type="button"
-                        className="btn btn-teal"
-                        onClick={() => void playMix(mix)}
-                      >
-                        Play
-                      </button>
-                    )}
+                    <button
+                      type="button"
+                      className="btn btn-teal"
+                      onClick={() => onPlayInPlayer(mix)}
+                    >
+                      Open Player
+                    </button>
                     <button type="button" className="btn btn-primary" onClick={() => onEdit(mix)}>
                       Edit
                     </button>

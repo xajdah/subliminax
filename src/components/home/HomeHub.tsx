@@ -39,13 +39,19 @@ const CARDS: {
   },
   {
     id: 'player',
-    title: 'Player',
-    blurb: 'Live psychoacoustic playback with X-Ray and tuner access.',
+    title: 'Subliminal Player',
+    blurb:
+      'Play saved mixes with frequency cymatics, X-Ray EQ, mix volumes, and advanced tools.',
+  },
+  {
+    id: 'ganzfeld',
+    title: 'Ganzfeld Visual Sync',
+    blurb: 'Closed-eye photic flicker locked to the entrainment phase — separate from Create.',
   },
   {
     id: 'saved',
     title: 'Saved Tracks',
-    blurb: 'Completed mixes on this device — play, edit, export, or delete anytime.',
+    blurb: 'Completed mixes on this device — open in Player, edit, export, or delete.',
   },
   {
     id: 'presets',
