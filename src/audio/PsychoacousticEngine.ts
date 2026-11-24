@@ -72,6 +72,12 @@ export class PsychoacousticEngine {
   private voiceBufferLoop = true
   private savedBuses: PsychoacousticState['buses'] | null = null
   private raf = 0
+  /** Master-clock phase accumulator for audio-visual sync (radians). */
+  private entrainmentPhaseRad = 0
+  private entrainmentPhaseAt = 0
+  private entrainmentTrackHz = 6
+  private breathPhaseRad = 0
+  private breathPhaseAt = 0
 
   subscribe(fn: Listener): () => void {
     this.listeners.add(fn)
@@ -103,6 +109,63 @@ export class PsychoacousticEngine {
 
   isPlaying() {
     return this.playing
+  }
+
+  getAudioContext(): AudioContext | null {
+    return this.ctx
+  }
+
+  /**
+   * Instantaneous entrainment phase locked to audioCtx.currentTime
+   * (never wall-clock timers). Phase wraps 0…2π at the active beat Hz.
+   */
+  getEntrainmentSnapshot(atTime?: number): {
+    phaseRad: number
+    beatHz: number
+    breathPhaseRad: number
+    breathCycleSec: number
+    audioTime: number
+  } {
+    const audioTime = atTime ?? this.ctx?.currentTime ?? 0
+    this.advanceEntrainmentPhase(audioTime)
+    this.advanceBreathPhase(audioTime)
+    return {
+      phaseRad: this.wrapTwoPi(this.entrainmentPhaseRad),
+      beatHz: this.entrainmentTrackHz,
+      breathPhaseRad: this.wrapTwoPi(this.breathPhaseRad),
+      breathCycleSec: this.breathCycleSeconds(),
+      audioTime,
+    }
+  }
+
+  private wrapTwoPi(r: number) {
+    const TWO_PI = Math.PI * 2
+    let x = r % TWO_PI
+    if (x < 0) x += TWO_PI
+    return x
+  }
+
+  private breathCycleSeconds() {
+    return this.state.breath.breathPattern === '5-5' ? 10 : 19
+  }
+
+  private advanceEntrainmentPhase(audioTime: number) {
+    const dt = Math.max(0, audioTime - this.entrainmentPhaseAt)
+    this.entrainmentPhaseRad += 2 * Math.PI * this.entrainmentTrackHz * dt
+    this.entrainmentPhaseAt = audioTime
+  }
+
+  private advanceBreathPhase(audioTime: number) {
+    const dt = Math.max(0, audioTime - this.breathPhaseAt)
+    const hz = 1 / this.breathCycleSeconds()
+    this.breathPhaseRad += 2 * Math.PI * hz * dt
+    this.breathPhaseAt = audioTime
+  }
+
+  private syncEntrainmentClock(hz: number) {
+    const t = this.ctx?.currentTime ?? 0
+    this.advanceEntrainmentPhase(t)
+    this.entrainmentTrackHz = clamp(hz, 0.5, 40)
   }
 
   private ensureCtx(): AudioContext {
@@ -208,6 +271,18 @@ export class PsychoacousticEngine {
     if (withDemo) await this.startDemoSources()
     if (this.voiceBuffer) this.startVoiceBufferPlayback()
     this.applyAll()
+    const t0 = ctx.currentTime
+    this.entrainmentPhaseRad = 0
+    this.entrainmentPhaseAt = t0
+    this.breathPhaseRad = 0
+    this.breathPhaseAt = t0
+    this.entrainmentTrackHz = clamp(
+      this.state.illusions.chirpDurationMinutes > 0
+        ? (this.illusions?.getLiveBeatHz() ?? this.state.frequency.beatHz)
+        : this.state.frequency.beatHz,
+      0.5,
+      40,
+    )
     this.playing = true
     this.loop()
     this.emit()
@@ -263,6 +338,7 @@ export class PsychoacousticEngine {
       this.state.illusions.chirpDurationMinutes > 0
         ? this.illusions?.getLiveBeatHz() ?? f.beatHz
         : f.beatHz
+    this.syncEntrainmentClock(Math.max(0.5, beat))
 
     if (f.mode === 'binaural') {
       this.freqMerger = ctx.createChannelMerger(2)
@@ -321,9 +397,10 @@ export class PsychoacousticEngine {
       this.state.isolateVoice ? 0.0001 : music,
       this.state.isolateVoice ? 0.0001 : sound,
     )
-    // Chirp updates beat
+    // Chirp updates beat — keep visual phase clock continuous
     if (this.state.illusions.chirpDurationMinutes > 0 && this.illusions) {
       const hz = this.illusions.getLiveBeatHz()
+      this.syncEntrainmentClock(hz)
       if (this.freqOscR && this.state.frequency.mode === 'binaural') {
         setParam(
           this.freqOscR.frequency,
@@ -334,6 +411,8 @@ export class PsychoacousticEngine {
       if (this.isoLfo && this.state.frequency.mode === 'isochronic') {
         setParam(this.isoLfo.frequency, Math.max(0.5, hz), this.ctx!)
       }
+    } else {
+      this.syncEntrainmentClock(this.state.frequency.beatHz)
     }
     this.emit()
     this.raf = requestAnimationFrame(this.loop)
@@ -394,6 +473,7 @@ export class PsychoacousticEngine {
   updateEntrainment(beatHz: number, carrierHz?: number) {
     this.state.frequency.beatHz = clamp(beatHz, 0.5, 40)
     if (carrierHz != null) this.state.frequency.carrierHz = clamp(carrierHz, 80, 600)
+    this.syncEntrainmentClock(this.state.frequency.beatHz)
     if (!this.ctx) {
       this.emit()
       return
