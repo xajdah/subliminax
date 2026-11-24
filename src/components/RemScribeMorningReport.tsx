@@ -2,10 +2,12 @@ import { useMemo, useState } from 'react'
 import { interpretDream } from '../services/dreamInterpreter'
 import {
   ACOUSTIC_EVENT_LABELS,
+  lucidCueEffectivenessScore,
   type AcousticEvent,
   type AcousticEventKind,
   type DreamLog,
   type HypnogramSample,
+  type LucidCueEvent,
   type RemScribeSession,
   type SleepStage,
 } from '../types/remscribe'
@@ -45,8 +47,10 @@ function formatRel(sec: number) {
 
 export function RemScribeMorningReport({ session, onBack, onUpdateDream }: Props) {
   const [selectedEvent, setSelectedEvent] = useState<AcousticEvent | null>(null)
+  const [selectedCue, setSelectedCue] = useState<LucidCueEvent | null>(null)
   const [interpretingId, setInterpretingId] = useState<string | null>(null)
   const metrics = session.metrics
+  const lucidCues = session.lucidCues ?? []
   const durationSec = session.endedAt
     ? (session.endedAt - session.startedAt) / 1000
     : session.config.durationHours * 3600
@@ -54,6 +58,10 @@ export function RemScribeMorningReport({ session, onBack, onUpdateDream }: Props
   const hypnoPath = useMemo(
     () => buildHypnogramPath(session.hypnogram, durationSec),
     [session.hypnogram, durationSec],
+  )
+  const lucidScore = useMemo(
+    () => lucidCueEffectivenessScore(lucidCues, session.dreams),
+    [lucidCues, session.dreams],
   )
 
   const interpret = async (dream: DreamLog) => {
@@ -86,7 +94,7 @@ export function RemScribeMorningReport({ session, onBack, onUpdateDream }: Props
       </header>
 
       {metrics && (
-        <section className="mb-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+        <section className="mb-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
           <MetricCard label="Total Sleep" value={`${metrics.totalSleepMin} min`} />
           <MetricCard label="Deep Delta" value={`${metrics.deepPct}%`} />
           <MetricCard label="REM" value={`${metrics.remPct}%`} />
@@ -94,6 +102,15 @@ export function RemScribeMorningReport({ session, onBack, onUpdateDream }: Props
             label="Efficiency"
             value={`${metrics.efficiencyScore}`}
             hint={`${metrics.noiseDisturbanceCount} noise events`}
+          />
+          <MetricCard
+            label="Lucid Cue Score"
+            value={lucidCues.length ? `${lucidScore}` : '—'}
+            hint={
+              lucidCues.length
+                ? `${lucidCues.filter((c) => c.outcome === 'completed').length}/${lucidCues.length} completed`
+                : 'Cueing off'
+            }
           />
         </section>
       )}
@@ -122,9 +139,41 @@ export function RemScribeMorningReport({ session, onBack, onUpdateDream }: Props
             {session.events.map((ev) => {
               const x = 48 + (ev.relativeSec / Math.max(1, durationSec)) * 740
               return (
-                <g key={ev.id} style={{ cursor: 'pointer' }} onClick={() => setSelectedEvent(ev)}>
+                <g
+                  key={ev.id}
+                  style={{ cursor: 'pointer' }}
+                  onClick={() => {
+                    setSelectedCue(null)
+                    setSelectedEvent(ev)
+                  }}
+                >
                   <circle cx={x} cy={12} r="5" fill={eventColor(ev.kind)} />
                   <title>{ACOUSTIC_EVENT_LABELS[ev.kind]}</title>
+                </g>
+              )
+            })}
+            {lucidCues.map((cue) => {
+              const x = 48 + (cue.relativeSec / Math.max(1, durationSec)) * 740
+              const aborted = cue.outcome === 'aborted'
+              return (
+                <g
+                  key={cue.id}
+                  style={{ cursor: 'pointer' }}
+                  onClick={() => {
+                    setSelectedEvent(null)
+                    setSelectedCue(cue)
+                  }}
+                >
+                  <polygon
+                    points={starPoints(x, 14, 7, 3.2)}
+                    fill={aborted ? '#7c3aed88' : '#a78bfa'}
+                    stroke="#c4b5fd"
+                    strokeWidth="1"
+                  />
+                  <title>
+                    ✨ Lucid Cue Fired · {cue.outcome}
+                    {cue.ultradianPeakMin != null ? ` · ~${cue.ultradianPeakMin}m peak` : ''}
+                  </title>
                 </g>
               )
             })}
@@ -137,6 +186,9 @@ export function RemScribeMorningReport({ session, onBack, onUpdateDream }: Props
               {st}
             </span>
           ))}
+          <span className="inline-flex items-center gap-1.5">
+            <span className="text-violet-300">✦</span> Lucid Cue
+          </span>
         </div>
         {selectedEvent && (
           <div className="rounded-lg border border-[var(--border)] bg-[var(--bg)] p-3">
@@ -153,6 +205,19 @@ export function RemScribeMorningReport({ session, onBack, onUpdateDream }: Props
             ) : (
               <p className="mt-2 text-sm text-muted">No clip retained for this event.</p>
             )}
+          </div>
+        )}
+        {selectedCue && (
+          <div className="rounded-lg border border-[color-mix(in_oklab,#a78bfa_45%,transparent)] bg-[color-mix(in_oklab,#7c3aed_12%,transparent)] p-3">
+            <p className="font-display font-semibold text-ink">✨ Lucid Cue Fired</p>
+            <p className="mt-1 text-sm text-muted">
+              {formatClock(selectedCue.timestamp)} · +{formatRel(selectedCue.relativeSec)} ·{' '}
+              {selectedCue.outcome === 'completed' ? 'Completed' : `Auto-aborted (${selectedCue.abortReason ?? 'movement'})`}
+              {selectedCue.ultradianPeakMin != null && ` · Ultradian ~${selectedCue.ultradianPeakMin} min`}
+            </p>
+            <p className="mt-1 text-xs text-muted">
+              Confidence {(selectedCue.confidence * 100).toFixed(0)}%
+            </p>
           </div>
         )}
       </section>
@@ -231,6 +296,8 @@ function eventColor(kind: AcousticEventKind): string {
   switch (kind) {
     case 'dreamRecorded':
       return '#c4a484'
+    case 'lucidCue':
+      return '#a78bfa'
     case 'gasping':
       return '#b91c1c'
     case 'snoring':
@@ -242,6 +309,16 @@ function eventColor(kind: AcousticEventKind): string {
     default:
       return '#0d9488'
   }
+}
+
+function starPoints(cx: number, cy: number, outer: number, inner: number): string {
+  const pts: string[] = []
+  for (let i = 0; i < 10; i++) {
+    const r = i % 2 === 0 ? outer : inner
+    const a = -Math.PI / 2 + (i * Math.PI) / 5
+    pts.push(`${(cx + Math.cos(a) * r).toFixed(1)},${(cy + Math.sin(a) * r).toFixed(1)}`)
+  }
+  return pts.join(' ')
 }
 
 function buildHypnogramPath(samples: HypnogramSample[], durationSec: number): string {

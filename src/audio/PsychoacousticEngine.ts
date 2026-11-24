@@ -199,6 +199,11 @@ export class PsychoacousticEngine {
     return this.mixTap
   }
 
+  /** Destination for soft overnight lucid cues (mix tap → sum). */
+  getCueDestination(): AudioNode | null {
+    return this.mixTap ?? this.sum
+  }
+
   async start(opts?: { withDemoSources?: boolean; context?: AudioContext }) {
     const withDemo = opts?.withDemoSources !== false
     if (opts?.context) {

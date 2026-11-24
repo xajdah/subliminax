@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
+import { lucidCueOrchestrator } from '../../audio/LucidCueOrchestrator'
 import { nightAcousticMonitor } from '../../audio/NightAcousticMonitor'
 import { psychoEngine } from '../../audio/PsychoacousticEngine'
 import { sleepCurveScheduler } from '../../audio/SleepCurveScheduler'
@@ -7,16 +8,20 @@ import { visionBoardStorage } from '../../services/visionBoardStorage'
 import { remscribeStorage } from '../../services/remscribeStorage'
 import {
   DREAM_LANGUAGES,
+  defaultLucidCueConfig,
   estimateMetrics,
   newRemId,
   type AcousticEvent,
   type DreamLanguageCode,
   type DreamLog,
   type HypnogramSample,
+  type LucidCueConfig,
+  type LucidCueEvent,
   type RemScribeSession,
   type SessionDurationPreset,
   type SleepCurvePhase,
 } from '../../types/remscribe'
+import { LucidPrimerModal } from '../LucidPrimerModal'
 import { ThemeToggle } from '../ThemeToggle'
 import { RemScribeMorningReport } from '../RemScribeMorningReport'
 import { RemScribeNightMode } from '../RemScribeNightMode'
@@ -61,6 +66,9 @@ export function RemScribeHub({ onHome }: Props) {
   const [speechHint, setSpeechHint] = useState<string | null>(null)
   const [starting, setStarting] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [lucidEnabled, setLucidEnabled] = useState(false)
+  const [lucidConfig, setLucidConfig] = useState<LucidCueConfig>(() => defaultLucidCueConfig())
+  const [primerOpen, setPrimerOpen] = useState(false)
 
   const goals = useMemo(() => visionBoardStorage.getAll().goals.slice(0, 5), [])
   const affirmations = useMemo(() => {
@@ -95,6 +103,7 @@ export function RemScribeHub({ onHome }: Props) {
   }, [])
 
   const endNight = useCallback(async () => {
+    lucidCueOrchestrator.stop()
     sleepCurveScheduler.stop(false)
     await nightAcousticMonitor.stop()
     psychoEngine.stop()
@@ -115,10 +124,11 @@ export function RemScribeHub({ onHome }: Props) {
     setHubPhase('morning')
   }, [])
 
-  const startNight = async () => {
+  const beginNightWithConfig = async (cueConfig: LucidCueConfig) => {
     if (starting) return
     setStarting(true)
     setError(null)
+    setLucidConfig(cueConfig)
     try {
       const startedAt = Date.now()
       const customWakeAtMs =
@@ -132,20 +142,30 @@ export function RemScribeHub({ onHome }: Props) {
             })()
           : null
 
+      const linkedAffirmations = [
+        ...affirmations,
+        ...(cueConfig.linkedAffirmation ? [cueConfig.linkedAffirmation] : []),
+      ].filter((v, i, a) => a.indexOf(v) === i)
+
       const next: RemScribeSession = {
         id: newRemId('session'),
         config: {
           durationHours: resolvedHours,
           customWakeAtMs,
           language,
-          linkedAffirmations: affirmations,
-          linkedGoalNames: goals.map((g) => g.title),
+          linkedAffirmations,
+          linkedGoalNames: [
+            ...goals.map((g) => g.title),
+            ...(cueConfig.linkedGoalTitle ? [cueConfig.linkedGoalTitle] : []),
+          ].filter((v, i, a) => a.indexOf(v) === i),
+          lucidCue: cueConfig,
         },
         startedAt,
         endedAt: null,
         events: [],
         dreams: [],
         hypnogram: [],
+        lucidCues: [],
         metrics: null,
         status: 'running',
       }
@@ -196,7 +216,33 @@ export function RemScribeHub({ onHome }: Props) {
             return updated
           })
         },
+        onFeatures: (f) => lucidCueOrchestrator.onFeatures(f),
+        onArousalSpike: () => lucidCueOrchestrator.onArousalSpike(),
       })
+
+      if (cueConfig.enabled) {
+        lucidCueOrchestrator.start(startedAt, cueConfig, {
+          onCue: (cue: LucidCueEvent) => {
+            setSession((prev) => {
+              if (!prev) return prev
+              const acousticPin: AcousticEvent = {
+                id: newRemId('evt'),
+                kind: 'lucidCue',
+                timestamp: cue.timestamp,
+                relativeSec: cue.relativeSec,
+                confidence: cue.confidence,
+              }
+              const updated = {
+                ...prev,
+                lucidCues: [...prev.lucidCues, cue],
+                events: [...prev.events, acousticPin],
+              }
+              remscribeStorage.upsert(updated)
+              return updated
+            })
+          },
+        })
+      }
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Could not start REMscribe night.')
       setHubPhase('setup')
@@ -205,8 +251,17 @@ export function RemScribeHub({ onHome }: Props) {
     }
   }
 
+  const startNight = async () => {
+    if (lucidEnabled) {
+      setPrimerOpen(true)
+      return
+    }
+    await beginNightWithConfig({ ...defaultLucidCueConfig(), enabled: false })
+  }
+
   useEffect(() => {
     return () => {
+      lucidCueOrchestrator.stop()
       sleepCurveScheduler.stop(false)
       void nightAcousticMonitor.stop()
     }
@@ -295,6 +350,30 @@ export function RemScribeHub({ onHome }: Props) {
         </p>
       </section>
 
+      <section className="panel mb-5 space-y-3 p-5">
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div>
+            <h2 className="panel-title text-lg">Lucid Dream Cueing</h2>
+            <p className="mt-1 text-sm text-muted">
+              Closed-loop REM cues with sub-awakening blending, 75-min lockout, and arousal abort.
+            </p>
+          </div>
+          <button
+            type="button"
+            className="chip"
+            data-active={lucidEnabled}
+            onClick={() => setLucidEnabled((v) => !v)}
+          >
+            {lucidEnabled ? 'Enabled' : 'Off'}
+          </button>
+        </div>
+        {lucidEnabled && (
+          <p className="text-xs text-muted">
+            Starting the night opens a 90-second pre-sleep conditioning ritual (cue + reality checks).
+          </p>
+        )}
+      </section>
+
       <section className="panel mb-5 space-y-4 p-5">
         <h2 className="panel-title text-lg">Dream Recognition Language</h2>
         <p className="text-sm text-muted">
@@ -353,11 +432,27 @@ export function RemScribeHub({ onHome }: Props) {
         disabled={starting}
         onClick={() => void startNight()}
       >
-        {starting ? 'Preparing night…' : 'Begin Night Session'}
+        {starting
+          ? 'Preparing night…'
+          : lucidEnabled
+            ? 'Begin · Lucid Cueing Ritual'
+            : 'Begin Night Session'}
       </button>
       <p className="mt-3 text-center text-xs text-muted">
         OLED night mode dims the screen. Mic uses echo cancellation so sleep audio is ignored.
       </p>
+
+      <LucidPrimerModal
+        open={primerOpen}
+        goals={goals.map((g) => ({ id: g.id, title: g.title }))}
+        affirmations={affirmations}
+        initial={lucidConfig}
+        onCancel={() => setPrimerOpen(false)}
+        onComplete={(cfg) => {
+          setPrimerOpen(false)
+          void beginNightWithConfig(cfg)
+        }}
+      />
     </div>
   )
 }
