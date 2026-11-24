@@ -1,5 +1,9 @@
 import type { MoodCategory, MoodTrackDef } from '../types/studio'
 
+/** Cloudflare R2 public base for HQ soundtrack beds */
+export const R2_MUSIC_BASE =
+  'https://pub-59ff490146264a67852157b156174a93.r2.dev'
+
 export const MOOD_LABELS: Record<MoodCategory, string> = {
   calming: 'Calming',
   energizing: 'Energizing',
@@ -78,14 +82,14 @@ export const MOOD_TRACKS: MoodTrackDef[] = [
     blurb: 'Synth · slow swelling harmonic wash',
     profile: 'swell-wash',
   },
-  // Energizing — real audio beds
+  // Energizing — real audio beds (HQ on Cloudflare R2)
   {
     id: 'energizing-morning',
     mood: 'energizing',
     name: 'Energizing Morning',
     blurb: 'Full audio bed · bright morning lift',
     profile: 'bright-pulse',
-    audioSrc: '/audio/mood/energizing/energizing-morning.mp3',
+    audioSrc: `${R2_MUSIC_BASE}/energizing/Energizing%20Morning.mp3`,
   },
   {
     id: 'high-vibration-strings',
@@ -93,7 +97,7 @@ export const MOOD_TRACKS: MoodTrackDef[] = [
     name: 'High Vibration Strings',
     blurb: 'Full audio bed · lively string energy',
     profile: 'drive-seq',
-    audioSrc: '/audio/mood/energizing/high-vibration-strings.mp3',
+    audioSrc: `${R2_MUSIC_BASE}/energizing/High%20Vibration%20Strings%201.mp3`,
   },
   {
     id: 'morning-sun-vitality-1',
@@ -101,7 +105,7 @@ export const MOOD_TRACKS: MoodTrackDef[] = [
     name: 'Morning Sun Vitality 1',
     blurb: 'Full audio bed · sunlit vitality',
     profile: 'filter-surge',
-    audioSrc: '/audio/mood/energizing/morning-sun-vitality-1.mp3',
+    audioSrc: `${R2_MUSIC_BASE}/energizing/Morning%20Sun%20Vitality%201.mp3`,
   },
   {
     id: 'morning-sun-vitality-2',
