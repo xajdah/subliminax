@@ -85,12 +85,13 @@ export class MixEngine {
     this.master.gain.value = this.masterVolume
     this.analyser = this.ctx.createAnalyser()
     this.analyser.fftSize = 2048
+    // Soft ceiling — avoid grit/pumping on decoded MP3 beds
     this.limiter = this.ctx.createDynamicsCompressor()
-    this.limiter.threshold.value = -14
-    this.limiter.knee.value = 22
-    this.limiter.ratio.value = 8
-    this.limiter.attack.value = 0.003
-    this.limiter.release.value = 0.22
+    this.limiter.threshold.value = -6
+    this.limiter.knee.value = 12
+    this.limiter.ratio.value = 3
+    this.limiter.attack.value = 0.01
+    this.limiter.release.value = 0.18
     this.duckBus = this.ctx.createGain()
     this.spatialPan = this.ctx.createStereoPanner()
     this.hrtf = this.ctx.createPanner()
