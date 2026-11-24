@@ -401,6 +401,19 @@ export function CreateSubliminal({ onHome, initialMix = null, onOpenSaved }: Pro
           onPlay={() => void engine.play(session)}
           onPause={engine.pause}
           onStop={stopPreview}
+          onAuditionTrack={(trackId) => {
+            const next: CreateSession = {
+              ...session,
+              soundtrack: { ...session.soundtrack, trackId },
+              optimalLevels: false,
+            }
+            setSession(next)
+            if (engine.transport === 'playing' && session.soundtrack.trackId === trackId) {
+              stopPreview()
+              return
+            }
+            void engine.play(next)
+          }}
           onNext={() => go('ambient')}
         />
       )}
@@ -686,6 +699,7 @@ function SoundtrackStep({
   onPlay,
   onPause,
   onStop,
+  onAuditionTrack,
   onNext,
 }: {
   session: CreateSession
@@ -694,6 +708,7 @@ function SoundtrackStep({
   onPlay: () => void
   onPause: () => void
   onStop: () => void
+  onAuditionTrack: (trackId: string) => void
   onNext: () => void
 }) {
   const moods = Object.keys(MOOD_LABELS) as MoodCategory[]
@@ -702,8 +717,10 @@ function SoundtrackStep({
     <section className="panel space-y-4 p-5">
       <h2 className="panel-title text-lg">Step 4 · Soundtrack by Mood</h2>
       <p className="text-sm text-muted">
-        Calming and Energizing include real music beds; other moods use synth beds. Use Play preview
-        below to audition — track volume also lives in Mix levels above.
+        Calming and Energizing include real music beds; other moods use synth beds. Use ▶ on each
+        tile to audition that bed (or the transport above). On cloud VMs without speakers, use{' '}
+        <span className="text-ink">Download 12s WAV</span> — live audition works on your machine
+        after publish.
       </p>
       <StepPreviewControls
         transport={transport}
@@ -732,25 +749,50 @@ function SoundtrackStep({
         ))}
       </div>
       <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
-        {tracks.map((t) => (
-          <button
-            key={t.id}
-            type="button"
-            className="chip flex flex-col items-start px-3 py-3 text-left"
-            data-active={session.soundtrack.trackId === t.id}
-            onClick={() => onChange({ ...session.soundtrack, trackId: t.id })}
-          >
-            <span className="font-display text-sm font-bold">
-              {t.name}
-              {t.audioSrc ? (
-                <span className="ml-1.5 text-[0.65rem] font-semibold uppercase tracking-wide text-teal">
-                  Audio
+        {tracks.map((t) => {
+          const selected = session.soundtrack.trackId === t.id
+          const auditioning = selected && transport === 'playing'
+          return (
+            <div
+              key={t.id}
+              className="chip track-tile flex items-stretch gap-2 px-2 py-2 text-left"
+              data-active={selected}
+              data-auditioning={auditioning}
+            >
+              <button
+                type="button"
+                className="track-tile-play"
+                aria-label={auditioning ? `Stop ${t.name}` : `Play ${t.name}`}
+                title={auditioning ? 'Stop preview' : 'Preview this track'}
+                onClick={(e) => {
+                  e.stopPropagation()
+                  onAuditionTrack(t.id)
+                }}
+              >
+                {auditioning ? '❚❚' : '▶'}
+              </button>
+              <button
+                type="button"
+                className="flex min-w-0 flex-1 flex-col items-start rounded-md px-1 py-1 text-left"
+                onClick={() => onChange({ ...session.soundtrack, trackId: t.id })}
+              >
+                <span className="font-display text-sm font-bold">
+                  {t.name}
+                  {t.audioSrc ? (
+                    <span className="ml-1.5 text-[0.65rem] font-semibold uppercase tracking-wide text-teal">
+                      Audio
+                    </span>
+                  ) : (
+                    <span className="ml-1.5 text-[0.65rem] font-semibold uppercase tracking-wide text-muted">
+                      Synth
+                    </span>
+                  )}
                 </span>
-              ) : null}
-            </span>
-            <span className="text-[0.7rem] text-muted">{t.blurb}</span>
-          </button>
-        ))}
+                <span className="text-[0.7rem] text-muted">{t.blurb}</span>
+              </button>
+            </div>
+          )
+        })}
       </div>
       <label className="block max-w-xs">
         <span className="field-label">Track volume</span>
