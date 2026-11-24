@@ -587,3 +587,62 @@ body {
     padding: 0;
   }
 }
+
+/* —— REMscribe OLED Night Mode —— */
+.remscribe-night {
+  background: #000000;
+  color: #7c2d12;
+}
+
+.remscribe-breath-ring {
+  width: min(72vw, 280px);
+  height: min(72vw, 280px);
+  animation: remscribe-breathe 7.5s ease-in-out infinite;
+}
+
+@keyframes remscribe-breathe {
+  0%,
+  100% {
+    transform: scale(0.92);
+    opacity: 0.35;
+  }
+  50% {
+    transform: scale(1.08);
+    opacity: 0.7;
+  }
+}
+
+.remscribe-mic-live {
+  animation: remscribe-mic-pulse 1.6s ease-in-out infinite;
+}
+
+@keyframes remscribe-mic-pulse {
+  0%,
+  100% {
+    opacity: 0.45;
+    box-shadow: 0 0 0 0 rgba(154, 52, 18, 0.35);
+  }
+  50% {
+    opacity: 1;
+    box-shadow: 0 0 0 6px rgba(154, 52, 18, 0);
+  }
+}
+
+.remscribe-end-btn {
+  touch-action: none;
+  user-select: none;
+  color: #7c2d12;
+  background: transparent;
+}
+
+.remscribe-end-btn:focus-visible {
+  outline: 1px solid #7c2d12;
+  outline-offset: 3px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .remscribe-breath-ring,
+  .remscribe-mic-live {
+    animation: none !important;
+  }
+}
