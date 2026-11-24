@@ -12,6 +12,10 @@ export function useMixEngine() {
   return {
     ...snap,
     play: useCallback((s: CreateSession) => void mixEngine.play(s), []),
+    playSoundtrackSolo: useCallback(
+      (s: CreateSession) => void mixEngine.playSoundtrackSolo(s),
+      [],
+    ),
     pause: useCallback(() => void mixEngine.pause(), []),
     stop: useCallback(() => mixEngine.stop(), []),
     setMasterVolume: useCallback((v: number) => mixEngine.setMasterVolume(v), []),

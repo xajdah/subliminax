@@ -405,14 +405,17 @@ export function CreateSubliminal({ onHome, initialMix = null, onOpenSaved }: Pro
             const next: CreateSession = {
               ...session,
               soundtrack: { ...session.soundtrack, trackId },
-              optimalLevels: false,
             }
             setSession(next)
-            if (engine.transport === 'playing' && session.soundtrack.trackId === trackId) {
+            const sameSolo =
+              engine.transport === 'playing' &&
+              engine.soundtrackSolo &&
+              session.soundtrack.trackId === trackId
+            if (sameSolo) {
               stopPreview()
               return
             }
-            void engine.play(next)
+            void engine.playSoundtrackSolo(next)
           }}
           onNext={() => go('ambient')}
         />
@@ -718,9 +721,9 @@ function SoundtrackStep({
       <h2 className="panel-title text-lg">Step 4 · Soundtrack by Mood</h2>
       <p className="text-sm text-muted">
         Each mood lists only its own beds — Calming and Energizing show their real music tracks;
-        other moods use synth beds. Use ▶ on each tile to audition (or the transport above). On
-        cloud VMs without speakers, use <span className="text-ink">Download 12s WAV</span> — live
-        audition works on your machine after publish.
+        other moods use synth beds. Tile ▶ auditions that bed alone (no frequency or voice). Use
+        Play preview / the top transport for the full mix. On cloud VMs without speakers, use{' '}
+        <span className="text-ink">Download 12s WAV</span>.
       </p>
       <StepPreviewControls
         transport={transport}
