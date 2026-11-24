@@ -265,7 +265,14 @@ export function CreateSubliminal({ onHome, initialMix = null, onOpenSaved }: Pro
             type="button"
             className="btn btn-primary btn-icon"
             aria-label="Play"
-            onClick={() => void engine.play(session)}
+            onClick={() => {
+              // On Soundtrack step, play only the selected bed — never frequency/voice
+              if (session.step === 'soundtrack') {
+                void engine.playSoundtrackSolo(session)
+                return
+              }
+              void engine.play(session)
+            }}
           >
             ▶
           </button>
@@ -398,21 +405,24 @@ export function CreateSubliminal({ onHome, initialMix = null, onOpenSaved }: Pro
           session={session}
           transport={engine.transport}
           onChange={(soundtrack) => patch({ soundtrack })}
-          onPlay={() => void engine.play(session)}
+          onPlay={() => void engine.playSoundtrackSolo(session)}
           onPause={engine.pause}
           onStop={stopPreview}
           onAuditionTrack={(trackId) => {
             const next: CreateSession = {
               ...session,
               soundtrack: { ...session.soundtrack, trackId },
-              optimalLevels: false,
             }
             setSession(next)
-            if (engine.transport === 'playing' && session.soundtrack.trackId === trackId) {
+            const sameSolo =
+              engine.transport === 'playing' &&
+              engine.soundtrackSolo &&
+              session.soundtrack.trackId === trackId
+            if (sameSolo) {
               stopPreview()
               return
             }
-            void engine.play(next)
+            void engine.playSoundtrackSolo(next)
           }}
           onNext={() => go('ambient')}
         />
@@ -682,7 +692,7 @@ function StepPreviewControls({
         </button>
       ) : (
         <button type="button" className="btn btn-primary" onClick={onPlay}>
-          ▶ Play preview
+          ▶ Play track
         </button>
       )}
       <button type="button" className="btn btn-ghost" onClick={onStop}>
@@ -718,9 +728,9 @@ function SoundtrackStep({
       <h2 className="panel-title text-lg">Step 4 · Soundtrack by Mood</h2>
       <p className="text-sm text-muted">
         Each mood lists only its own beds — Calming and Energizing show their real music tracks;
-        other moods use synth beds. Use ▶ on each tile to audition (or the transport above). On
-        cloud VMs without speakers, use <span className="text-ink">Download 12s WAV</span> — live
-        audition works on your machine after publish.
+        other moods use synth beds. ▶ on a tile (or Play track) auditions that bed alone — no
+        frequency tone and no narration. Full mix plays later on Ambient / Mix. On cloud VMs
+        without speakers, use <span className="text-ink">Download 12s WAV</span>.
       </p>
       <StepPreviewControls
         transport={transport}

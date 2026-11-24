@@ -20,9 +20,13 @@ export interface MixSnapshot {
   transport: TransportState
   masterVolume: number
   analyser: AnalyserNode | null
+  /** True when tile audition is soundtrack-only (no carrier / ambient / voice) */
+  soundtrackSolo: boolean
 }
 
 type Listener = (s: MixSnapshot) => void
+
+type GraphOpts = { soundtrackOnly?: boolean }
 
 /** Subliminax session mix: carrier + mood track + ambients + voice + spatial. */
 export class MixEngine {
@@ -44,6 +48,8 @@ export class MixEngine {
   private speaking = false
   private driftRaf: number | null = null
   private session: CreateSession | null = null
+  /** Tile audition: mood bed only */
+  private soundtrackSolo = false
   /** Bumps to cancel in-flight async mood loads when the graph rebuilds */
   private graphGen = 0
 
@@ -65,6 +71,7 @@ export class MixEngine {
       transport: this.transport,
       masterVolume: this.masterVolume,
       analyser: this.analyser,
+      soundtrackSolo: this.soundtrackSolo,
     }
   }
 
@@ -135,6 +142,15 @@ export class MixEngine {
     const prev = this.session
     this.session = session
     if (this.transport !== 'playing') return
+    // Solo tile audition must never reintroduce carrier / ambients / voice via sync
+    if (this.soundtrackSolo) {
+      if (prev && prev.soundtrack.trackId === session.soundtrack.trackId) {
+        this.applyLiveLevels(session)
+        return
+      }
+      void this.rebuildLive()
+      return
+    }
     if (prev && this.canApplyLiveLevels(prev, session)) {
       this.applyLiveLevels(session)
       return
@@ -183,15 +199,18 @@ export class MixEngine {
 
   async play(session: CreateSession) {
     const prev = this.session
+    const wasSolo = this.soundtrackSolo
+    this.soundtrackSolo = false
     this.session = session
     const ctx = this.ensure()
     this.setMasterVolume(session.masterVolume)
     if (ctx.state === 'suspended') await ctx.resume()
     // Already audible — swap beds / levels without forcing a full stop
     if (this.transport === 'playing') {
-      if (prev && this.canApplyLiveLevels(prev, session)) {
+      if (!wasSolo && prev && this.canApplyLiveLevels(prev, session)) {
         this.applyLiveLevels(session)
       } else {
+        this.stopVoice()
         await this.rebuildLive()
       }
       return
@@ -212,6 +231,23 @@ export class MixEngine {
     this.emit()
   }
 
+  /** Tile audition — only the selected mood bed (no frequency / ambient / narration). */
+  async playSoundtrackSolo(session: CreateSession) {
+    this.session = session
+    this.soundtrackSolo = true
+    const ctx = this.ensure()
+    this.setMasterVolume(session.masterVolume)
+    if (ctx.state === 'suspended') await ctx.resume()
+    this.stopVoice()
+    this.teardownGraph(false)
+    // Mark playing before decode so a concurrent sync() keeps the solo path
+    this.transport = 'playing'
+    this.emit()
+    await this.buildGraph(session, { soundtrackOnly: true })
+    if (!this.soundtrackSolo || this.session !== session) return
+    this.emit()
+  }
+
   async pause() {
     if (this.transport !== 'playing' || !this.ctx) return
     this.stopVoice()
@@ -225,6 +261,7 @@ export class MixEngine {
     this.stopVoice()
     this.teardownGraph(true)
     this.stopDrift()
+    this.soundtrackSolo = false
     if (this.ctx?.state === 'running') void this.ctx.suspend()
     this.transport = 'stopped'
     this.emit()
@@ -233,68 +270,75 @@ export class MixEngine {
   private async rebuildLive() {
     if (!this.session) return
     const session = this.session
+    const solo = this.soundtrackSolo
     this.teardownGraph(false)
-    await this.buildGraph(session)
-    if (this.transport === 'playing' && this.session === session) {
+    await this.buildGraph(session, { soundtrackOnly: solo })
+    if (this.transport === 'playing' && this.session === session && !solo) {
       this.startVoice(session.voice)
     }
   }
 
-  private async buildGraph(session: CreateSession) {
+  private async buildGraph(session: CreateSession, opts: GraphOpts = {}) {
     const gen = ++this.graphGen
     const ctx = this.ensure()
     if (!this.duckBus || !this.spatialPan || !this.hrtf || !this.master) return
+    const soundtrackOnly = !!opts.soundtrackOnly
 
     // Mood track — real MP3/WAV when audioSrc is set, else procedural synth
     const track = getTrack(session.soundtrack.trackId)
+    const moodGain = effectiveTrackGain(session.soundtrack.volume, !!track?.audioSrc)
     if (track?.audioSrc) {
       try {
         const buffer = await loadMoodAudio(ctx, track.audioSrc)
         if (gen !== this.graphGen) return
-        this.mood = startMoodAudioBuffer(ctx, buffer, session.soundtrack.volume)
+        this.mood = startMoodAudioBuffer(ctx, buffer, moodGain)
         this.mood.output.connect(this.duckBus)
       } catch {
         if (gen !== this.graphGen) return
-        this.mood = startMoodTrack(ctx, track.profile, session.soundtrack.volume)
+        this.mood = startMoodTrack(ctx, track.profile, moodGain)
         this.mood.output.connect(this.duckBus)
       }
     } else if (track) {
-      this.mood = startMoodTrack(ctx, track.profile, session.soundtrack.volume)
+      this.mood = startMoodTrack(ctx, track.profile, moodGain)
       this.mood.output.connect(this.duckBus)
     }
 
     if (gen !== this.graphGen) return
 
-    // Ambients
-    const ambientBus = session.ambientBusGain ?? 1
-    session.ambients
-      .filter((a) => a.enabled)
-      .forEach((a) => {
-        const def = AMBIENTS.find((d) => d.id === a.id)
-        if (!def) return
-        const h = startAmbient(ctx, def.profile, a.gain * ambientBus)
-        h.output.connect(this.duckBus!)
-        this.ambients.set(a.id, h)
-      })
+    if (!soundtrackOnly) {
+      // Ambients
+      const ambientBus = session.ambientBusGain ?? 1
+      session.ambients
+        .filter((a) => a.enabled)
+        .forEach((a) => {
+          const def = AMBIENTS.find((d) => d.id === a.id)
+          if (!def) return
+          const h = startAmbient(ctx, def.profile, a.gain * ambientBus)
+          h.output.connect(this.duckBus!)
+          this.ambients.set(a.id, h)
+        })
 
-    // Carrier / entrainment
-    this.startCarrier(session.frequency)
+      // Carrier / entrainment
+      this.startCarrier(session.frequency)
 
-    // Duck when voice on
-    if (session.psycho.autoDuck && session.voice.mode !== 'none') {
-      this.duckBus.gain.setTargetAtTime(0.55, ctx.currentTime, 0.1)
+      // Duck when voice on
+      if (session.psycho.autoDuck && session.voice.mode !== 'none') {
+        this.duckBus.gain.setTargetAtTime(0.55, ctx.currentTime, 0.1)
+      } else {
+        this.duckBus.gain.setTargetAtTime(1, ctx.currentTime, 0.1)
+      }
     } else {
-      this.duckBus.gain.setTargetAtTime(1, ctx.currentTime, 0.1)
+      this.duckBus.gain.setTargetAtTime(1, ctx.currentTime, 0.05)
     }
 
-    // Spatial
+    // Spatial — solo audition stays centered (no HRTF drift)
     try {
       this.duckBus.disconnect()
     } catch {
       /* ignore */
     }
     this.stopDrift()
-    if (session.psycho.spatial === 'hrtf') {
+    if (!soundtrackOnly && session.psycho.spatial === 'hrtf') {
       this.duckBus.connect(this.hrtf)
       this.hrtf.connect(this.master)
       let phase = 0
@@ -307,8 +351,9 @@ export class MixEngine {
     } else {
       this.duckBus.connect(this.spatialPan)
       this.spatialPan.connect(this.master)
-      if (session.psycho.spatial === 'static') this.spatialPan.pan.value = 0
-      else {
+      if (soundtrackOnly || session.psycho.spatial === 'static') {
+        this.spatialPan.pan.value = 0
+      } else {
         let phase = 0
         const tick = () => {
           phase += (session.psycho.driftRate * Math.PI * 2) / 60
