@@ -228,6 +228,38 @@ body {
   accent-color: var(--accent-2);
 }
 
+/* Mix balance — sweet-spot notch on calibrated bus sliders */
+.mix-balance-track {
+  position: relative;
+  padding-top: 0.35rem;
+}
+
+.mix-balance-sweet {
+  position: absolute;
+  top: 0;
+  z-index: 1;
+  width: 2px;
+  height: 0.55rem;
+  transform: translateX(-50%);
+  border-radius: 1px;
+  background: color-mix(in oklab, var(--accent-2) 85%, white);
+  box-shadow: 0 0 0 1px color-mix(in oklab, var(--accent-2) 35%, transparent);
+  pointer-events: none;
+}
+
+.mix-balance-sweet::after {
+  content: '';
+  position: absolute;
+  left: 50%;
+  top: 100%;
+  width: 0;
+  height: 0;
+  transform: translateX(-50%);
+  border-left: 3px solid transparent;
+  border-right: 3px solid transparent;
+  border-top: 4px solid color-mix(in oklab, var(--accent-2) 85%, white);
+}
+
 .chip {
   display: inline-flex;
   align-items: center;

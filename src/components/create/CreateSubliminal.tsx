@@ -9,6 +9,10 @@ import { useMixEngine } from '../../hooks/useMixEngine'
 import { usePsychoEngine } from '../../hooks/usePsychoEngine'
 import { useSessionTimer, formatElapsed } from '../../hooks/useSessionTimer'
 import { useTheme } from '../../hooks/useTheme'
+import {
+  linearGainToDbFs,
+  type ManifestationMode,
+} from '../../audio/manifestationCalibration'
 import { applyOptimalMixLevels } from '../../data/mixLevels'
 import { savedMixStorage, titleForSession } from '../../services/savedMixStorage'
 import type { SavedMix } from '../../types/savedMix'
@@ -25,6 +29,7 @@ import {
   type MoodCategory,
   type TransportState,
 } from '../../types/studio'
+import { MixBalanceDeck, type MixBusKey } from '../MixBalanceDeck'
 import { ThemeToggle } from '../ThemeToggle'
 import { AdvancedEngineeringPanel } from './AdvancedEngineeringPanel'
 import { AiScriptArchitect } from './AiScriptArchitect'
@@ -95,7 +100,46 @@ export function CreateSubliminal({ onHome, initialMix = null, onOpenSaved }: Pro
     }))
   const go = (step: CreateStep) => patch({ step })
 
-  const applyOptimal = () => setSession((s) => applyOptimalMixLevels(s))
+  const applyOptimal = (mode: ManifestationMode = 'standard') => {
+    setSession((s) => {
+      const next = applyOptimalMixLevels(s, mode)
+      next.advancedPsycho = {
+        ...next.advancedPsycho,
+        buses: {
+          music: linearGainToDbFs(next.soundtrack.volume),
+          soundscape: linearGainToDbFs(next.ambientBusGain),
+          frequency: linearGainToDbFs(next.frequency.volume),
+          voice: linearGainToDbFs(next.voice.volume),
+        },
+      }
+      return next
+    })
+    psychoEngine.applyManifestationCalibration(mode)
+  }
+
+  const sessionMixLevels = {
+    soundtrackDb: linearGainToDbFs(session.soundtrack.volume),
+    ambientDb: linearGainToDbFs(session.ambientBusGain),
+    frequencyDb: linearGainToDbFs(session.frequency.volume),
+    voiceDb: linearGainToDbFs(session.voice.volume),
+  }
+
+  const onMixBusChange = (bus: MixBusKey, db: number) => {
+    const lin = Math.pow(10, db / 20)
+    if (bus === 'soundtrack') {
+      patch({ soundtrack: { ...session.soundtrack, volume: lin } })
+      if (psycho.playing) psychoEngine.setBusDb('music', db)
+    } else if (bus === 'ambient') {
+      patch({ ambientBusGain: lin })
+      if (psycho.playing) psychoEngine.setBusDb('soundscape', db)
+    } else if (bus === 'frequency') {
+      patch({ frequency: { ...session.frequency, volume: lin } })
+      if (psycho.playing) psychoEngine.setBusDb('frequency', db)
+    } else {
+      patch({ voice: { ...session.voice, volume: lin } })
+      if (psycho.playing) psychoEngine.setBusDb('voice', db)
+    }
+  }
 
   const previewWithTools = async () => {
     await engine.play(session)
@@ -245,12 +289,27 @@ export function CreateSubliminal({ onHome, initialMix = null, onOpenSaved }: Pro
         </button>
       </div>
 
-      <MixLevelsPanel
-        session={session}
-        onPatch={patch}
-        onApplyOptimal={applyOptimal}
-        onMaster={(v) => engine.setMasterVolume(v)}
-      />
+      <div className="panel mb-5 flex flex-wrap items-center gap-3 px-4 py-3">
+        <label className="flex min-w-[12rem] flex-1 items-center gap-2">
+          <span className="field-label mb-0">Master</span>
+          <input
+            className="field-range"
+            type="range"
+            min={0}
+            max={1}
+            step={0.01}
+            value={session.masterVolume}
+            onChange={(e) => {
+              const v = Number(e.target.value)
+              patch({ masterVolume: v })
+              engine.setMasterVolume(v)
+            }}
+          />
+          <span className="w-10 text-right text-xs tabular-nums text-muted">
+            {Math.round(session.masterVolume * 100)}%
+          </span>
+        </label>
+      </div>
 
       {exportMsg ? (
         <p className="mb-4 text-[12px] text-muted" role="status">
@@ -369,6 +428,10 @@ export function CreateSubliminal({ onHome, initialMix = null, onOpenSaved }: Pro
       {session.step === 'mix' && (
         <MixStep
           session={session}
+          mixLevels={sessionMixLevels}
+          manifestationMode={session.manifestationMode ?? 'standard'}
+          onMixBusChange={onMixBusChange}
+          onApplyCalibration={applyOptimal}
           onPatch={patch}
           onPlay={() => engine.play(session)}
           psychoPlaying={psycho.playing}
@@ -390,119 +453,18 @@ export function CreateSubliminal({ onHome, initialMix = null, onOpenSaved }: Pro
 }
 
 function normalizeSession(raw: CreateSession): CreateSession {
-  return {
+  const withDefaults: CreateSession = {
     ...raw,
     ambientBusGain: raw.ambientBusGain ?? 0.36,
     optimalLevels: raw.optimalLevels ?? false,
     masterVolume: raw.masterVolume ?? 0.8,
+    manifestationMode: raw.manifestationMode ?? 'standard',
   }
-}
-
-function MixLevelsPanel({
-  session,
-  onPatch,
-  onApplyOptimal,
-  onMaster,
-}: {
-  session: CreateSession
-  onPatch: (p: Partial<CreateSession>) => void
-  onApplyOptimal: () => void
-  onMaster: (v: number) => void
-}) {
-  const pct = (v: number) => `${Math.round(v * 100)}%`
-  return (
-    <section className="panel mb-5 space-y-3 px-4 py-3">
-      <div className="flex flex-wrap items-center justify-between gap-2">
-        <h2 className="font-display text-sm font-bold text-ink">Mix levels</h2>
-        <button
-          type="button"
-          className="chip chip-teal"
-          data-active={session.optimalLevels}
-          onClick={onApplyOptimal}
-        >
-          Optimal configuration
-        </button>
-      </div>
-      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
-        <label className="block">
-          <span className="field-label">Master · {pct(session.masterVolume)}</span>
-          <input
-            className="field-range"
-            type="range"
-            min={0}
-            max={1}
-            step={0.01}
-            value={session.masterVolume}
-            onChange={(e) => {
-              const v = Number(e.target.value)
-              onPatch({ masterVolume: v })
-              onMaster(v)
-            }}
-          />
-        </label>
-        <label className="block">
-          <span className="field-label">Track · {pct(session.soundtrack.volume)}</span>
-          <input
-            className="field-range"
-            type="range"
-            min={0}
-            max={1}
-            step={0.01}
-            value={session.soundtrack.volume}
-            onChange={(e) =>
-              onPatch({
-                soundtrack: { ...session.soundtrack, volume: Number(e.target.value) },
-              })
-            }
-          />
-        </label>
-        <label className="block">
-          <span className="field-label">Ambient · {pct(session.ambientBusGain)}</span>
-          <input
-            className="field-range"
-            type="range"
-            min={0}
-            max={1}
-            step={0.01}
-            value={session.ambientBusGain}
-            onChange={(e) => onPatch({ ambientBusGain: Number(e.target.value) })}
-          />
-        </label>
-        <label className="block">
-          <span className="field-label">Frequency · {pct(session.frequency.volume)}</span>
-          <input
-            className="field-range"
-            type="range"
-            min={0}
-            max={1}
-            step={0.01}
-            value={session.frequency.volume}
-            onChange={(e) =>
-              onPatch({
-                frequency: { ...session.frequency, volume: Number(e.target.value) },
-              })
-            }
-          />
-        </label>
-        <label className="block">
-          <span className="field-label">Voice · {pct(session.voice.volume)}</span>
-          <input
-            className="field-range"
-            type="range"
-            min={0}
-            max={1}
-            step={0.01}
-            value={session.voice.volume}
-            onChange={(e) =>
-              onPatch({
-                voice: { ...session.voice, volume: Number(e.target.value) },
-              })
-            }
-          />
-        </label>
-      </div>
-    </section>
-  )
+  // Legacy saves without manifestationMode → snap to standard calibration once
+  if (raw.manifestationMode == null && raw.optimalLevels !== false) {
+    return applyOptimalMixLevels(withDefaults, 'standard')
+  }
+  return withDefaults
 }
 
 function FrequencyStep({
@@ -955,6 +917,10 @@ function VoiceStep({
 
 function MixStep({
   session,
+  mixLevels,
+  manifestationMode,
+  onMixBusChange,
+  onApplyCalibration,
   onPatch,
   onPlay,
   psychoPlaying,
@@ -971,6 +937,15 @@ function MixStep({
   completeFlash,
 }: {
   session: CreateSession
+  mixLevels: {
+    soundtrackDb: number
+    ambientDb: number
+    frequencyDb: number
+    voiceDb: number
+  }
+  manifestationMode: ManifestationMode
+  onMixBusChange: (bus: MixBusKey, db: number) => void
+  onApplyCalibration: (mode: ManifestationMode) => void
   onPatch: (p: Partial<CreateSession>) => void
   onPlay: () => void
   psychoPlaying: boolean
@@ -991,6 +966,15 @@ function MixStep({
   const p = session.psycho
   return (
     <div className="space-y-5">
+      <MixBalanceDeck
+        title="Optimal Manifestation Calibration"
+        mode={manifestationMode}
+        levels={mixLevels}
+        onChange={onMixBusChange}
+        onApplyMode={onApplyCalibration}
+        onOptimalReset={() => onApplyCalibration('standard')}
+      />
+
       <section className="panel space-y-4 p-5">
         <h2 className="panel-title text-lg">Mix · Preview & Complete</h2>
         <ul className="space-y-1 text-sm text-muted">

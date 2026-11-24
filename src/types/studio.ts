@@ -1,5 +1,6 @@
 /** Subliminax — core domain types */
 
+import { manifestationLinearGains, type ManifestationMode } from '../audio/manifestationCalibration'
 import { DEFAULT_PSYCHO, type PsychoacousticState } from './psychoacoustic'
 
 export type ThemeMode = 'dark' | 'light'
@@ -179,6 +180,8 @@ export interface CreateSession {
   ambientBusGain: number
   /** True when Optimal mix levels preset is active */
   optimalLevels: boolean
+  /** Active Optimal Manifestation Calibration mode */
+  manifestationMode: ManifestationMode
   lengthMinutes: number
   /** Set when user finishes the create flow */
   completed?: boolean
@@ -211,6 +214,7 @@ export const CREATE_STEPS: { id: CreateStep; label: string; n: number }[] = [
 ]
 
 export function createDefaultSession(): CreateSession {
+  const calibrated = manifestationLinearGains('standard')
   return {
     step: 'intent',
     category: null,
@@ -225,12 +229,12 @@ export function createDefaultSession(): CreateSession {
       progressiveRamp: false,
       rampStartHz: 10,
       rampEndHz: 4,
-      volume: 0.2,
+      volume: calibrated.frequency,
     },
     soundtrack: {
       mood: 'calming',
       trackId: 'tranquility',
-      volume: 0.48,
+      volume: calibrated.soundtrack,
       customFileName: null,
     },
     ambients: [],
@@ -240,7 +244,7 @@ export function createDefaultSession(): CreateSession {
       rate: 0.92,
       pitch: 1,
       loopPauseMs: 2800,
-      volume: 0.62,
+      volume: calibrated.voice,
       narratorId: 'serene-calm',
       cloneProfileId: 'local-soft',
       hasRecording: false,
@@ -257,8 +261,9 @@ export function createDefaultSession(): CreateSession {
     },
     advancedPsycho: structuredClone(DEFAULT_PSYCHO),
     masterVolume: 0.8,
-    ambientBusGain: 0.36,
+    ambientBusGain: calibrated.ambient,
     optimalLevels: true,
+    manifestationMode: 'standard',
     lengthMinutes: 20,
     completed: false,
   }

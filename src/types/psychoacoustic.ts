@@ -1,5 +1,7 @@
 /** Psychoacoustic DSP parameter model */
 
+import { busesFromManifestation } from '../audio/manifestationCalibration'
+
 export type NoiseColor = 'white' | 'pink' | 'brown'
 export type OrbitMode = 'circular' | 'figure8' | 'overCrown'
 export type BreathPattern = '4-7-8' | '5-5'
@@ -86,13 +88,7 @@ export interface PsychoacousticState {
 }
 
 export const DEFAULT_PSYCHO: PsychoacousticState = {
-  buses: {
-    // Studio audition levels (still voice-under-music; not full club loudness)
-    music: -8,
-    soundscape: -10,
-    frequency: -14,
-    voice: -18,
-  },
+  buses: busesFromManifestation('standard'),
   spatial: {
     externalizer: 0.35,
     frontBehind: 0.2,
