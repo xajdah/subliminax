@@ -4,10 +4,12 @@ import { CreateSubliminal } from './components/create/CreateSubliminal'
 import { HomeHub } from './components/home/HomeHub'
 import { LivePlayer } from './components/player/LivePlayer'
 import { RemScribeHub } from './components/remscribe/RemScribeHub'
+import { SavedMixesHub } from './components/saved/SavedMixesHub'
 import { VisionBoardHub } from './components/vision/VisionBoardHub'
 import { ThemeToggle } from './components/ThemeToggle'
 import { clearAureviaQuery, readAureviaLaunch, type AureviaLaunch } from './data/aureviaShare'
 import { useTheme } from './hooks/useTheme'
+import type { SavedMix } from './types/savedMix'
 import type { AppView } from './types/studio'
 
 function Placeholder({
@@ -40,6 +42,7 @@ export default function App() {
   const openedFromLink = useState(() => readAureviaLaunch())[0]
   const [view, setView] = useState<AppView>(openedFromLink ? 'aurevia' : 'home')
   const [launch, setLaunch] = useState<AureviaLaunch | null>(openedFromLink)
+  const [editMix, setEditMix] = useState<SavedMix | null>(null)
 
   const go = (next: AppView, nextLaunch?: AureviaLaunch | null) => {
     if (next === 'aurevia') setLaunch(nextLaunch ?? null)
@@ -47,12 +50,28 @@ export default function App() {
       setLaunch(null)
       clearAureviaQuery()
     }
+    // Home / presets / studio navigation starts a fresh Create session
+    if (next === 'create' || next === 'studio' || next === 'presets') {
+      setEditMix(null)
+    }
     setView(next)
+  }
+
+  const openCreate = (mix: SavedMix | null = null) => {
+    setEditMix(mix)
+    setView('create')
   }
 
   if (view === 'home') return <HomeHub onNavigate={go} />
   if (view === 'create' || view === 'studio' || view === 'presets')
-    return <CreateSubliminal onHome={() => go('home')} />
+    return (
+      <CreateSubliminal
+        key={editMix?.id ?? (view === 'presets' ? 'presets' : 'new')}
+        initialMix={editMix}
+        onHome={() => go('home')}
+        onOpenSaved={() => setView('saved')}
+      />
+    )
   if (view === 'vision') return <VisionBoardHub onHome={() => go('home')} />
   if (view === 'remscribe') return <RemScribeHub onHome={() => go('home')} />
   if (view === 'player') return <LivePlayer onHome={() => go('home')} />
@@ -66,10 +85,10 @@ export default function App() {
     )
   if (view === 'saved')
     return (
-      <Placeholder
-        title="Saved Tracks"
-        body="Persistent library for completed subliminals — browse, play, edit, and export. Coming online next."
+      <SavedMixesHub
         onHome={() => go('home')}
+        onEdit={(mix) => openCreate(mix)}
+        onCreate={() => openCreate(null)}
       />
     )
   return (

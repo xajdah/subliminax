@@ -45,7 +45,7 @@ const CARDS: {
   {
     id: 'saved',
     title: 'Saved Tracks',
-    blurb: 'Browse, play, edit, and export completed subliminal tracks.',
+    blurb: 'Completed mixes on this device — play, edit, export, or delete anytime.',
   },
   {
     id: 'presets',
