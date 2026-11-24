@@ -388,7 +388,9 @@ export function RemScribeHub({ onHome }: Props) {
         {starting ? 'Preparing night…' : 'Begin Night Session'}
       </button>
       <p className="mt-3 text-center text-xs text-muted">
-        OLED night mode dims the screen. Mic uses echo cancellation so sleep audio is ignored.
+        OLED night mode dims the screen. Mic stays local for acoustic events; browser speech
+        recognition opens only in short bursts when speech is detected (wake word / dream), not
+        continuously overnight.
       </p>
     </div>
   )
