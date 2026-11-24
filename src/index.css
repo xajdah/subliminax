@@ -294,6 +294,46 @@ body {
   box-shadow: 0 0 0 1px color-mix(in oklab, var(--accent-2) 25%, transparent);
 }
 
+/* Soundtrack Step 4 — per-tile audition control */
+.track-tile {
+  cursor: default;
+  min-height: 3.75rem;
+}
+
+.track-tile-play {
+  flex: 0 0 auto;
+  align-self: center;
+  width: 2.25rem;
+  height: 2.25rem;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: color-mix(in oklab, var(--surface-solid) 80%, transparent);
+  color: var(--text);
+  font-size: 0.72rem;
+  line-height: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition:
+    border-color 150ms ease,
+    background 150ms ease,
+    transform 120ms ease;
+}
+
+.track-tile-play:hover {
+  border-color: color-mix(in oklab, var(--accent-2) 55%, var(--border));
+  background: color-mix(in oklab, var(--accent-2) 18%, var(--surface-solid));
+}
+
+.track-tile[data-auditioning='true'] .track-tile-play {
+  border-color: color-mix(in oklab, var(--accent) 55%, var(--border));
+  background: color-mix(in oklab, var(--accent) 78%, var(--surface-solid));
+  color: #1a0f08;
+  font-size: 0.58rem;
+  letter-spacing: -0.04em;
+}
+
 @keyframes halo-breathe {
   0%,
   100% {

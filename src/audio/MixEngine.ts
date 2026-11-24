@@ -182,11 +182,20 @@ export class MixEngine {
   }
 
   async play(session: CreateSession) {
+    const prev = this.session
     this.session = session
     const ctx = this.ensure()
     this.setMasterVolume(session.masterVolume)
     if (ctx.state === 'suspended') await ctx.resume()
-    if (this.transport === 'playing') return
+    // Already audible — swap beds / levels without forcing a full stop
+    if (this.transport === 'playing') {
+      if (prev && this.canApplyLiveLevels(prev, session)) {
+        this.applyLiveLevels(session)
+      } else {
+        await this.rebuildLive()
+      }
+      return
+    }
     if (this.transport === 'paused') {
       await ctx.resume()
       this.teardownGraph(false)
