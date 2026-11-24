@@ -60,8 +60,9 @@ const CARDS: {
   },
   {
     id: 'guide',
-    title: 'Psychoacoustics Guide',
-    blurb: 'Plain-language notes on carriers, bands, and masking.',
+    title: 'Feature Guide',
+    blurb:
+      'What every feature is for, how to use it, and what to expect — Create, Player, REMscribe, Ganzfeld, and more.',
   },
 ]
 

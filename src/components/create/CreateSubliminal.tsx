@@ -30,11 +30,22 @@ import {
   type MoodCategory,
   type TransportState,
 } from '../../types/studio'
+import { FeatureGuidelines } from '../guide/FeatureGuidelines'
 import { MixBalanceDeck, type MixBusKey } from '../MixBalanceDeck'
 import { ThemeToggle } from '../ThemeToggle'
 import { AdvancedEngineeringPanel } from './AdvancedEngineeringPanel'
 import { AiScriptArchitect } from './AiScriptArchitect'
 import { VoiceDeliveryPanel } from './VoiceDeliveryPanel'
+
+const STEP_GUIDE_ID: Record<CreateStep, string> = {
+  intent: 'create-intent',
+  issue: 'create-issue',
+  frequency: 'create-frequency',
+  soundtrack: 'create-soundtrack',
+  ambient: 'create-ambient',
+  voice: 'create-voice',
+  mix: 'create-mix',
+}
 
 interface Props {
   onHome: () => void
@@ -261,6 +272,8 @@ export function CreateSubliminal({ onHome, initialMix = null, onOpenSaved }: Pro
           )
         })}
       </nav>
+
+      <FeatureGuidelines entryId={STEP_GUIDE_ID[session.step]} className="mb-4" />
 
       {/* Transport strip */}
       <div className="panel mb-3 flex flex-wrap items-center gap-3 px-4 py-3">
