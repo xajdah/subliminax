@@ -18,6 +18,7 @@ import {
   type SessionDurationPreset,
   type SleepCurvePhase,
 } from '../../types/remscribe'
+import { FeatureGuidelines } from '../guide/FeatureGuidelines'
 import { ThemeToggle } from '../ThemeToggle'
 import { RemScribeMorningReport } from '../RemScribeMorningReport'
 import { RemScribeNightMode } from '../RemScribeNightMode'
@@ -272,6 +273,8 @@ export function RemScribeHub({ onHome }: Props) {
         </div>
         <ThemeToggle theme={theme} onToggle={toggleTheme} />
       </header>
+
+      <FeatureGuidelines entryId="remscribe" className="mb-5" defaultOpen />
 
       <section className="panel mb-5 space-y-4 p-5">
         <h2 className="panel-title text-lg">Session Duration</h2>

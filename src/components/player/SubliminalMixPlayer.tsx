@@ -15,6 +15,7 @@ import type { PsychoacousticState } from '../../types/psychoacoustic'
 import type { SavedMix } from '../../types/savedMix'
 import type { CreateSession } from '../../types/studio'
 import { AdvancedEngineeringPanel } from '../create/AdvancedEngineeringPanel'
+import { FeatureGuidelines } from '../guide/FeatureGuidelines'
 import { MixBalanceDeck, type MixBusKey } from '../MixBalanceDeck'
 import { SubliminalXRay } from '../psycho/SubliminalXRay'
 import { ThemeToggle } from '../ThemeToggle'
@@ -197,6 +198,8 @@ export function SubliminalMixPlayer({ mixId, onHome, onOpenSaved, onSelectMix }:
           <ThemeToggle theme={theme} onToggle={toggleTheme} />
         </header>
 
+        <FeatureGuidelines entryId="subliminal-player" className="mb-5" defaultOpen />
+
         {mixes.length === 0 ? (
           <div className="panel space-y-3 p-6">
             <h2 className="panel-title text-lg">No saved mixes yet</h2>
@@ -280,6 +283,8 @@ export function SubliminalMixPlayer({ mixId, onHome, onOpenSaved, onSelectMix }:
           {note}
         </p>
       )}
+
+      <FeatureGuidelines entryId="subliminal-player" className="mb-4" />
 
       <div className="mb-4 flex flex-wrap gap-2" role="group" aria-label="Visualizer mode">
         <button

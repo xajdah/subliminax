@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { psychoEngine } from '../../audio/PsychoacousticEngine'
 import { usePsychoEngine } from '../../hooks/usePsychoEngine'
 import { useTheme } from '../../hooks/useTheme'
+import { FeatureGuidelines } from '../guide/FeatureGuidelines'
 import { GanzfeldEntrainmentOverlay } from '../GanzfeldEntrainmentOverlay'
 import { ThemeToggle } from '../ThemeToggle'
 
@@ -52,6 +53,8 @@ export function GanzfeldHub({ onHome }: Props) {
         </div>
         <ThemeToggle theme={theme} onToggle={toggleTheme} />
       </header>
+
+      <FeatureGuidelines entryId="ganzfeld" className="mb-5" defaultOpen />
 
       <section className="panel space-y-4 p-5">
         <h2 className="panel-title text-lg">Session</h2>

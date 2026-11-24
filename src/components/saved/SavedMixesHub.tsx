@@ -4,6 +4,7 @@ import { getTrack } from '../../data/moodTracks'
 import { useTheme } from '../../hooks/useTheme'
 import { savedMixStorage } from '../../services/savedMixStorage'
 import type { SavedMix } from '../../types/savedMix'
+import { FeatureGuidelines } from '../guide/FeatureGuidelines'
 import { ThemeToggle } from '../ThemeToggle'
 
 interface Props {
@@ -73,6 +74,8 @@ export function SavedMixesHub({ onHome, onEdit, onCreate, onPlayInPlayer }: Prop
           <ThemeToggle theme={theme} onToggle={toggleTheme} />
         </div>
       </header>
+
+      <FeatureGuidelines entryId="saved-tracks" className="mb-5" />
 
       {note && (
         <p className="panel mb-4 px-4 py-3 text-sm text-ink" role="status">
