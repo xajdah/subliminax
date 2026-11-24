@@ -11,6 +11,10 @@ import { SomaticProcessor } from './dsp/SomaticProcessor'
 import { SpatialProcessor } from './dsp/SpatialProcessor'
 import { clamp, dbToGain, nyquistClamp, setParam } from './dsp/util'
 import {
+  busesFromManifestation,
+  type ManifestationMode,
+} from './manifestationCalibration'
+import {
   NOISE_WORKLET_NAME,
   ensureWorklets,
 } from './worklets/workletSources'
@@ -458,6 +462,37 @@ export class PsychoacousticEngine {
     this.state.buses[bus] = clamp(db, -60, 0)
     if (this.buses && this.ctx) {
       setParam(this.buses[bus].gain.gain, dbToGain(this.state.buses[bus]), this.ctx, tau)
+    }
+    this.emit()
+  }
+
+  /**
+   * Optimal Manifestation Calibration — click-free ramp of all four bus gains.
+   * `standard` is the Studio default; Sleep / Ultrasonic remap ambient & voice staging.
+   */
+  applyManifestationCalibration(mode: ManifestationMode, tau = 0.08) {
+    const buses = busesFromManifestation(mode)
+    this.state.buses = { ...buses }
+    if (mode === 'ultrasonic') {
+      this.state.breath = {
+        ...this.state.breath,
+        ultrasonic: true,
+        ultrasonicCarrierHz: clamp(this.state.breath.ultrasonicCarrierHz || 16000, 15500, 17000),
+      }
+    } else if (mode === 'deepSleep') {
+      this.state.soundscapeNoise = 'brown'
+      this.state.breath = { ...this.state.breath, envelopeMaskDb: -18 }
+    }
+    if (this.buses && this.ctx) {
+      const ctx = this.ctx
+      const t = ctx.currentTime
+      ;(Object.keys(buses) as BusId[]).forEach((id) => {
+        const g = this.buses![id].gain.gain
+        g.cancelScheduledValues(t)
+        g.setTargetAtTime(dbToGain(buses[id]), t, tau)
+      })
+      if (this.breath) this.breath.apply(this.state.breath)
+      this.noiseNode?.port.postMessage({ color: this.state.soundscapeNoise })
     }
     this.emit()
   }

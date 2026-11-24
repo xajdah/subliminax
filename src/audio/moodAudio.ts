@@ -2,7 +2,6 @@
  * Decode + loop MP3/WAV mood beds (cached per AudioContext sample-rate key).
  */
 
-import { FILE_BED_GAIN } from '../data/mixLevels'
 import type { MoodSynthHandle } from './moodSynth'
 
 const bufferCache = new Map<string, AudioBuffer>()
@@ -23,14 +22,14 @@ export async function loadMoodAudio(
   return buffer
 }
 
-/** `volume` is the UI slider (0–1); file beds get extra headroom to avoid clipping. */
+/** `volume` is linear gain (0–1), typically from Optimal Manifestation Calibration. */
 export function startMoodAudioBuffer(
   ctx: AudioContext,
   buffer: AudioBuffer,
   volume: number,
 ): MoodSynthHandle {
   const output = ctx.createGain()
-  output.gain.value = Math.max(0, Math.min(1, volume)) * FILE_BED_GAIN
+  output.gain.value = Math.max(0, Math.min(1, volume))
   const src = ctx.createBufferSource()
   src.buffer = buffer
   src.loop = true

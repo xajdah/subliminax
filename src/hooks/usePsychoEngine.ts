@@ -41,6 +41,11 @@ export function usePsychoEngine() {
       (s: PsychoacousticState) => psychoEngine.applyPreset(s),
       [],
     ),
+    applyManifestationCalibration: useCallback(
+      (mode: Parameters<typeof psychoEngine.applyManifestationCalibration>[0]) =>
+        psychoEngine.applyManifestationCalibration(mode),
+      [],
+    ),
     triggerAffirmation: useCallback(() => psychoEngine.triggerAffirmation(), []),
   }
 }

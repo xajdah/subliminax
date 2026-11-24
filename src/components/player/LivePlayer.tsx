@@ -1,10 +1,12 @@
 import { useEffect, useState } from 'react'
 import { focusShieldController } from '../../audio/FocusShieldController'
+import type { ManifestationMode } from '../../audio/manifestationCalibration'
 import { STUDIO_PRESETS } from '../../data/studioPresets'
 import { usePsychoEngine } from '../../hooks/usePsychoEngine'
 import { useTheme } from '../../hooks/useTheme'
 import { FocusShieldPanel } from '../FocusShieldPanel'
 import { GanzfeldEntrainmentOverlay } from '../GanzfeldEntrainmentOverlay'
+import { MixBalanceDeck } from '../MixBalanceDeck'
 import { SubliminaXLogo } from '../shared/SubliminaXLogo'
 import { ThemeToggle } from '../ThemeToggle'
 import { PsychoacousticTunerRack } from '../psycho/PsychoacousticTunerRack'
@@ -20,6 +22,7 @@ export function LivePlayer({ onHome }: Props) {
   const eng = usePsychoEngine()
   const maskDb = eng.state.buses.music + eng.state.breath.envelopeMaskDb
   const [ganzfeldOpen, setGanzfeldOpen] = useState(false)
+  const [calMode, setCalMode] = useState<ManifestationMode>('standard')
 
   useEffect(() => {
     return () => {
@@ -60,6 +63,34 @@ export function LivePlayer({ onHome }: Props) {
       <main className="relative z-10 mx-auto grid max-w-7xl gap-4 px-5 pb-16 sm:px-8 lg:grid-cols-[1fr_1.1fr]">
         <div className="space-y-4">
           <FocusShieldPanel />
+
+          <MixBalanceDeck
+            title="Player mix deck"
+            mode={calMode}
+            levels={{
+              soundtrackDb: eng.state.buses.music,
+              ambientDb: eng.state.buses.soundscape,
+              frequencyDb: eng.state.buses.frequency,
+              voiceDb: eng.state.buses.voice,
+            }}
+            onChange={(bus, db) => {
+              const map = {
+                soundtrack: 'music',
+                ambient: 'soundscape',
+                frequency: 'frequency',
+                voice: 'voice',
+              } as const
+              eng.setBusDb(map[bus], db)
+            }}
+            onApplyMode={(mode) => {
+              setCalMode(mode)
+              eng.applyManifestationCalibration(mode)
+            }}
+            onOptimalReset={() => {
+              setCalMode('standard')
+              eng.applyManifestationCalibration('standard')
+            }}
+          />
 
           <section className="panel p-4">
             <h2 className="panel-title mb-3 text-sm">Quick Presets</h2>
