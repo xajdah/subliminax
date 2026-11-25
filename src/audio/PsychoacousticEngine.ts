@@ -18,6 +18,9 @@ import {
   NOISE_WORKLET_NAME,
   ensureWorklets,
 } from './worklets/workletSources'
+import { SonicDnaWatermarkNode } from './SonicDnaCodec'
+import { payloadFromPsycho, type SonicDnaPayload } from '../types/sonicDna'
+import type { EntrainmentType, SpatialMode } from '../types/studio'
 
 export type BusId = 'music' | 'soundscape' | 'frequency' | 'voice'
 
@@ -86,6 +89,8 @@ export class PsychoacousticEngine {
   private entrainmentTrackHz = 6
   private breathPhaseRad = 0
   private breathPhaseAt = 0
+  private sonicDna: SonicDnaWatermarkNode | null = null
+  private sonicDnaEnabled = true
 
   subscribe(fn: Listener): () => void {
     this.listeners.add(fn)
@@ -282,6 +287,7 @@ export class PsychoacousticEngine {
     if (this.musicBuffer) this.startMusicBufferPlayback()
     if (this.voiceBuffer) this.startVoiceBufferPlayback()
     this.applyAll()
+    this.startSonicDnaWatermark()
     const t0 = ctx.currentTime
     this.entrainmentPhaseRad = 0
     this.entrainmentPhaseAt = t0
@@ -435,6 +441,7 @@ export class PsychoacousticEngine {
   stop() {
     this.playing = false
     cancelAnimationFrame(this.raf)
+    this.stopSonicDnaWatermark()
     this.spatial?.dispose()
     this.somatic?.dispose()
     this.breath?.dispose()
@@ -461,6 +468,76 @@ export class PsychoacousticEngine {
     this.buses = null
     this.master = this.limiter = this.sum = this.mixTap = null
     this.emit()
+  }
+
+  /** Enable/disable continuous Sonic DNA FSK watermark (DSP fingerprint only). */
+  setSonicDnaEnabled(on: boolean) {
+    this.sonicDnaEnabled = on
+    if (!on) this.stopSonicDnaWatermark()
+    else if (this.playing) this.startSonicDnaWatermark()
+  }
+
+  getSonicDnaPayload(): SonicDnaPayload {
+    return this.buildSonicDnaPayload()
+  }
+
+  private buildSonicDnaPayload(): SonicDnaPayload {
+    const s = this.getState()
+    const somaticAvg =
+      (s.somatic.chestBass +
+        s.somatic.phantomFundamental +
+        s.somatic.cranialPulse +
+        s.somatic.asmrWhisper) /
+      4
+    const freqMode = s.frequency.mode
+    const entrainmentType: EntrainmentType =
+      freqMode === 'binaural'
+        ? 'binaural'
+        : freqMode === 'isochronic'
+          ? 'isochronic'
+          : freqMode === 'monaural'
+            ? 'monaural'
+            : freqMode === 'solfeggio'
+              ? 'pure'
+              : 'off'
+    const spatialMode: SpatialMode =
+      s.spatial.externalizer > 0.55 ? 'hrtf' : s.spatial.dualPan > 0.25 ? 'bilateral' : 'static'
+    return payloadFromPsycho({
+      carrierHz: s.frequency.carrierHz,
+      beatHz: s.liveBeatHz || s.frequency.beatHz,
+      entrainmentType,
+      spatialMode,
+      somaticLevel: somaticAvg,
+      breathPattern: s.breath.breathPattern,
+      envelopeMaskDb: s.breath.envelopeMaskDb,
+    })
+  }
+
+  private startSonicDnaWatermark() {
+    if (!this.sonicDnaEnabled || !this.ctx || !this.sum) return
+    this.stopSonicDnaWatermark()
+    try {
+      this.sonicDna = new SonicDnaWatermarkNode(this.ctx, this.buildSonicDnaPayload())
+      this.sonicDna.connect(this.sum)
+      this.sonicDna.start()
+    } catch {
+      this.sonicDna = null
+    }
+  }
+
+  private stopSonicDnaWatermark() {
+    this.sonicDna?.stop()
+    this.sonicDna = null
+  }
+
+  /** Refresh watermark bits when DSP params change while playing. */
+  private refreshSonicDnaWatermark() {
+    if (!this.playing || !this.sonicDnaEnabled) return
+    if (this.sonicDna) {
+      this.sonicDna.updatePayload(this.buildSonicDnaPayload())
+    } else {
+      this.startSonicDnaWatermark()
+    }
   }
 
   patch(partial: DeepPartial<PsychoacousticState>) {
@@ -730,6 +807,7 @@ export class PsychoacousticEngine {
     if (this.playing) {
       this.applyAll()
       this.rebuildFrequency(this.state.frequency)
+      this.refreshSonicDnaWatermark()
     }
     this.emit()
   }
@@ -745,6 +823,7 @@ export class PsychoacousticEngine {
     this.illusions?.apply(this.state.illusions)
     this.neuro?.apply(this.state.neuro)
     this.noiseNode?.port.postMessage({ color: this.state.soundscapeNoise })
+    this.refreshSonicDnaWatermark()
   }
 }
 
