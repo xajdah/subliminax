@@ -226,8 +226,17 @@ export function SonicDnaScanner({ onHome, onApplyToStudio }: Props) {
   const selfCheckDecode = async () => {
     setNote(null)
     try {
-      if (!psychoEngine.isPlaying()) await psychoEngine.start({ withDemoSources: true })
-      const payload = psychoEngine.getSonicDnaPayload()
+      // Rich sample payload (engine defaults often have frequency mode off)
+      const { payloadFromPsycho } = await import('../types/sonicDna')
+      const payload = payloadFromPsycho({
+        carrierHz: 200,
+        beatHz: 8,
+        entrainmentType: 'binaural',
+        spatialMode: 'bilateral',
+        somaticLevel: 0.45,
+        breathPattern: '4-7-8',
+        envelopeMaskDb: -18,
+      })
       const tone = await renderSonicDnaTestTone(payload, 11, 48000)
       const decoded = decodeSonicDnaFromBuffer(tone)
       setResult(decoded)

@@ -70,7 +70,10 @@ export function sessionFromSonicDna(payload: SonicDnaPayload): CreateSession {
       entrainment: payload.entrainmentType === 'pure' ? 'pure' : payload.entrainmentType,
       band,
       beatHz: payload.beatHz,
-      hz: 528,
+      // Solfeggio / tone field — prefer a nearby sacred tone; binaural carrier lives in advancedPsycho
+      hz: [174, 285, 396, 417, 432, 528, 639, 741, 852, 963].reduce((best, hz) =>
+        Math.abs(hz - payload.carrierHz) < Math.abs(best - payload.carrierHz) ? hz : best,
+      528),
     },
     voice: {
       ...base.voice,

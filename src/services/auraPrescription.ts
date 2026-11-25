@@ -142,8 +142,15 @@ export function prescribeAura(
     w.some((x) => list.some((k) => x.includes(k) || k.includes(x)))
 
   let state: AuraEnergeticState
-  // Fast + jagged → agitated beta
-  if (kin.avgVelocity > 0.85 || kin.angularity > 0.55 || wordHit(AGITATION_WORDS)) {
+  // Semantic flow cues win when strokes aren't extremely jagged
+  if (
+    wordHit(FLOW_WORDS) &&
+    kin.angularity < 0.5 &&
+    (kin.curvatureSmoothness > 0.4 || kin.avgVelocity > 0.3)
+  ) {
+    state = 'creative-theta'
+  } else if (kin.avgVelocity > 0.95 || kin.angularity > 0.6 || wordHit(AGITATION_WORDS)) {
+    // Fast + jagged → agitated beta
     state = 'agitated-beta'
   } else if (
     kin.avgVelocity < 0.25 ||
@@ -152,7 +159,7 @@ export function prescribeAura(
     wordHit(LOW_WORDS)
   ) {
     state = 'low-energy'
-  } else if (kin.curvatureSmoothness > 0.55 && (kin.avgVelocity > 0.35 || wordHit(FLOW_WORDS))) {
+  } else if (kin.curvatureSmoothness > 0.55 && kin.avgVelocity > 0.35) {
     state = 'creative-theta'
   } else if (wordHit(FOCUS_WORDS) || (kin.density > 40 && kin.angularity < 0.35)) {
     state = 'focused-smr'
