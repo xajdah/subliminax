@@ -7,6 +7,7 @@ import { HomeHub } from './components/home/HomeHub'
 import { SubliminalMixPlayer } from './components/player/SubliminalMixPlayer'
 import { RemScribeHub } from './components/remscribe/RemScribeHub'
 import { SavedMixesHub } from './components/saved/SavedMixesHub'
+import { SubliminalStudyHub } from './components/study/SubliminalStudyHub'
 import { VisionBoardHub } from './components/vision/VisionBoardHub'
 import { clearAureviaQuery, readAureviaLaunch, type AureviaLaunch } from './data/aureviaShare'
 import type { SavedMix } from './types/savedMix'
@@ -55,6 +56,7 @@ export default function App() {
   if (view === 'vision') return <VisionBoardHub onHome={() => go('home')} />
   if (view === 'remscribe') return <RemScribeHub onHome={() => go('home')} />
   if (view === 'ganzfeld') return <GanzfeldHub onHome={() => go('home')} />
+  if (view === 'study') return <SubliminalStudyHub onHome={() => go('home')} />
   if (view === 'player')
     return (
       <SubliminalMixPlayer

@@ -22,6 +22,12 @@ const CARDS: {
     primary: true,
   },
   {
+    id: 'study',
+    title: 'Subliminal Study',
+    blurb:
+      'Scan textbooks, synthesize multi-style lessons, and study with age-calibrated headphones/speakers DSP.',
+  },
+  {
     id: 'aurevia',
     title: 'Aurevia',
     blurb: 'A voyage to your higher self — threshold, crossing, presence, and return.',

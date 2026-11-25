@@ -341,6 +341,24 @@ export const FEATURE_GUIDE_SECTIONS: FeatureGuideSection[] = [
         howTo: ['Create boards and goals; update progress; REMscribe can read goal titles for dream links.'],
         expect: ['Data is stored locally like Saved Tracks.'],
       },
+      {
+        id: 'subliminal-study',
+        title: 'Subliminal Study',
+        summary: 'OCR textbooks · multi-style lessons · age DSP · headphones/speakers.',
+        whatFor:
+          'Turn notes or scanned pages into age-calibrated study audio with active-recall, rhyme, song, podcast, memory palace, or ELI5 scripts.',
+        howTo: [
+          'Set language, subject, age, and Headphones vs Speakers.',
+          'Paste text or Scan Pages (OCR) to append textbook photos.',
+          'Pick a learning style → Generate → play with record / clone / narrator voice.',
+          'Toggle conscious vs subliminal listening; save to Saved Tracks when ready.',
+        ],
+        expect: [
+          'Ages ≤12 use High-Alpha 10.5 Hz; 13–24 use SMR 14 Hz (or Gamma 40 Hz); 25+ use Gamma over Alpha.',
+          'Headphones = binaural + externalizer; Speakers = mono-safe isochronic + 3 kHz clarity.',
+          'Highlights and a 5-question flash quiz appear above the script.',
+        ],
+      },
     ],
   },
 ]
