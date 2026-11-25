@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { createPortal } from 'react-dom'
 import { accountStorage } from '../services/accountStorage'
 import type { AccountStore } from '../types/account'
 import { AnalyticsHistoryTab } from './account/AnalyticsHistoryTab'
@@ -45,32 +46,40 @@ export function AccountHubModal({ open, onClose, initialTab = 'profile', onPlayT
     const onKey = (e: KeyboardEvent) => {
       if (e.key === 'Escape') onClose()
     }
+    const prev = document.body.style.overflow
+    document.body.style.overflow = 'hidden'
     window.addEventListener('keydown', onKey)
-    return () => window.removeEventListener('keydown', onKey)
+    return () => {
+      document.body.style.overflow = prev
+      window.removeEventListener('keydown', onKey)
+    }
   }, [open, onClose])
 
   if (!open) return null
 
-  return (
+  return createPortal(
     <div
-      className="fixed inset-0 z-[80] flex items-end justify-center sm:items-center sm:p-6"
+      className="fixed inset-0 z-[120] flex items-end justify-center sm:items-center sm:p-6"
       role="dialog"
       aria-modal="true"
       aria-labelledby="account-hub-title"
     >
       <button
         type="button"
-        className="absolute inset-0 bg-black/55 backdrop-blur-[2px]"
+        className="absolute inset-0 bg-black/60 backdrop-blur-[2px]"
         aria-label="Close account hub"
         onClick={onClose}
       />
-      <div className="relative z-10 flex max-h-[92vh] w-full max-w-3xl flex-col overflow-hidden rounded-t-2xl border border-[var(--border-strong)] bg-[var(--panel)] shadow-2xl sm:rounded-2xl">
+      <div className="relative z-10 flex max-h-[92vh] w-full max-w-3xl flex-col overflow-hidden rounded-t-2xl border border-[var(--border-strong)] bg-[var(--surface-solid)] shadow-2xl sm:rounded-2xl">
         <div className="flex items-start justify-between gap-3 border-b border-[var(--border)] px-4 py-4 sm:px-5">
           <div className="min-w-0">
             <p className="text-xs font-semibold uppercase tracking-[0.18em] text-bronze-soft">
               Account
             </p>
-            <h2 id="account-hub-title" className="font-display text-xl font-extrabold text-ink sm:text-2xl">
+            <h2
+              id="account-hub-title"
+              className="font-display text-xl font-extrabold text-ink sm:text-2xl"
+            >
               Neuro-Profile Hub
             </h2>
             <p className="mt-0.5 truncate text-sm text-muted">
@@ -109,6 +118,7 @@ export function AccountHubModal({ open, onClose, initialTab = 'profile', onPlayT
           {tab === 'subscription' && <SubscriptionTab store={store} />}
         </div>
       </div>
-    </div>
+    </div>,
+    document.body,
   )
 }
