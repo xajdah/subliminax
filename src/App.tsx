@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { AuraCalibration } from './components/AuraCalibration'
 import { AureviaSession } from './components/aurevia/AureviaSession'
 import { CreateSubliminal } from './components/create/CreateSubliminal'
 import { GanzfeldHub } from './components/ganzfeld/GanzfeldHub'
@@ -7,6 +8,7 @@ import { HomeHub } from './components/home/HomeHub'
 import { SubliminalMixPlayer } from './components/player/SubliminalMixPlayer'
 import { RemScribeHub } from './components/remscribe/RemScribeHub'
 import { SavedMixesHub } from './components/saved/SavedMixesHub'
+import { SonicDnaScanner } from './components/SonicDnaScanner'
 import { SubliminalStudyHub } from './components/study/SubliminalStudyHub'
 import { VisionBoardHub } from './components/vision/VisionBoardHub'
 import { clearAureviaQuery, readAureviaLaunch, type AureviaLaunch } from './data/aureviaShare'
@@ -57,6 +59,20 @@ export default function App() {
   if (view === 'remscribe') return <RemScribeHub onHome={() => go('home')} />
   if (view === 'ganzfeld') return <GanzfeldHub onHome={() => go('home')} />
   if (view === 'study') return <SubliminalStudyHub onHome={() => go('home')} />
+  if (view === 'aura')
+    return (
+      <AuraCalibration
+        onHome={() => go('home')}
+        onGenerateTrack={() => go('create')}
+      />
+    )
+  if (view === 'sonicDna')
+    return (
+      <SonicDnaScanner
+        onHome={() => go('home')}
+        onApplyToStudio={() => go('create')}
+      />
+    )
   if (view === 'player')
     return (
       <SubliminalMixPlayer

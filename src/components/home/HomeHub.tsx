@@ -29,6 +29,18 @@ const CARDS: {
       'Scan textbooks, synthesize multi-style lessons, and study with age-calibrated headphones/speakers DSP.',
   },
   {
+    id: 'aura',
+    title: 'Aura Calibration',
+    blurb:
+      'Draw your somatic intuition — kinematic telemetry + 3 words → personalized brainwave prescription.',
+  },
+  {
+    id: 'sonicDna',
+    title: 'Sonic DNA',
+    blurb:
+      'Scan 15s to authenticate Subliminax tracks and extract DSP Matrix Cards — affirmations stay private.',
+  },
+  {
     id: 'aurevia',
     title: 'Aurevia',
     blurb: 'A voyage to your higher self — threshold, crossing, presence, and return.',

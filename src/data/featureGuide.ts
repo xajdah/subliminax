@@ -382,6 +382,41 @@ export const FEATURE_GUIDE_SECTIONS: FeatureGuideSection[] = [
           'Ganzfeld consent saved here skips the session safety modal on later launches.',
         ],
       },
+      {
+        id: 'aura-calibration',
+        title: 'Aura Calibration',
+        summary: 'Kinetic drawing · 3 words · brainwave prescription card.',
+        whatFor:
+          'A somatic-intuition diagnostic: draw for 10–20s, capture velocity/curvature/hesitation, then map motion + words into a personalized frequency prescription.',
+        howTo: [
+          'Home → Aura Calibration → draw freely on the dark glass canvas (min 10s).',
+          'Finish → enter the first 3 words that arrive → Read my Aura.',
+          'Generate Track Now opens Studio preloaded with carrier/beat, spatial, breath, and a script from your words.',
+          'Save Frequency Preset keeps the prescription locally for later.',
+        ],
+        expect: [
+          'Fast/jagged → Alpha + 4-7-8; slow/heavy → SMR or Gamma; flowing → Theta.',
+          'Particle trails react to pointer velocity in real time.',
+        ],
+      },
+      {
+        id: 'sonic-dna',
+        title: 'Sonic DNA',
+        summary: 'Ultrasonic FSK watermark · 15s scanner · Matrix Card extract.',
+        whatFor:
+          'Authenticate Subliminax engine tracks and copy DSP architecture without ever exposing private affirmations.',
+        howTo: [
+          'Play any Subliminax session — PsychoacousticEngine embeds a repeating 10s FSK burst at 18.2–19.4 kHz (−36 dBFS).',
+          'Home → Sonic DNA → Scan Track (15s) with the mic, upload a file, or Self-check decode.',
+          'On success: verified badge + Matrix Card (frequencies, spatial, somatic, breath) with Affirmation Layer locked.',
+          'Apply Configuration to My Studio loads those DSP settings with voice left empty for your own script.',
+        ],
+        expect: [
+          'Payload carries SMX_V1 + checksum — never voice/affirmation text.',
+          'Decoded cards also appear under Account Hub → Matrix Cards (Sonic DNA).',
+          'Many laptop mics attenuate ultrasonics; file upload / Self-check is most reliable.',
+        ],
+      },
     ],
   },
 ]

@@ -17,6 +17,8 @@ export type AppView =
   | 'ganzfeld'
   | 'study'
   | 'aurevia'
+  | 'aura'
+  | 'sonicDna'
 export type TransportState = 'stopped' | 'playing' | 'paused'
 
 export type IntentCategory = 'physical' | 'mental' | 'spiritual' | 'emotional' | 'custom'
