@@ -4,6 +4,7 @@ import { psychoEngine } from '../../audio/PsychoacousticEngine'
 import { sleepCurveScheduler } from '../../audio/SleepCurveScheduler'
 import { tracksForMood } from '../../data/moodTracks'
 import { useTheme } from '../../hooks/useTheme'
+import { accountStorage } from '../../services/accountStorage'
 import { visionBoardStorage } from '../../services/visionBoardStorage'
 import { remscribeStorage } from '../../services/remscribeStorage'
 import {
@@ -56,7 +57,9 @@ export function RemScribeHub({ onHome }: Props) {
     d.setHours(7, 0, 0, 0)
     return `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`
   })
-  const [language, setLanguage] = useState<DreamLanguageCode>('en-US')
+  const [language, setLanguage] = useState<DreamLanguageCode>(
+    () => accountStorage.get().preferences.remscribeLanguage ?? 'en-US',
+  )
   const [musicTrackId, setMusicTrackId] = useState(DEFAULT_CALMING_TRACK_ID)
   const [session, setSession] = useState<RemScribeSession | null>(null)
   const [remainingMs, setRemainingMs] = useState(0)
@@ -342,7 +345,10 @@ export function RemScribeHub({ onHome }: Props) {
               type="button"
               className="chip justify-start"
               data-active={language === lang.code}
-              onClick={() => setLanguage(lang.code)}
+              onClick={() => {
+                setLanguage(lang.code)
+                accountStorage.updatePreferences({ remscribeLanguage: lang.code })
+              }}
             >
               {lang.label}
             </button>
