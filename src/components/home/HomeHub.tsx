@@ -1,6 +1,7 @@
 import { AUREVIA_STARTS, DREAM_LAUNCH, dreamHour, skyDoor, type AureviaLaunch } from '../../data/aureviaShare'
 import { useTheme } from '../../hooks/useTheme'
 import type { AppView } from '../../types/studio'
+import { AccountAvatarMenu } from '../AccountAvatarMenu'
 import { SubliminaXLogo } from '../shared/SubliminaXLogo'
 import { ThemeToggle } from '../ThemeToggle'
 
@@ -91,6 +92,12 @@ export function HomeHub({ onNavigate }: Props) {
         </div>
         <div className="flex items-center gap-2">
           <ThemeToggle theme={theme} onToggle={toggleTheme} />
+          <AccountAvatarMenu
+            onPlayTrack={(mixId) => {
+              if (mixId) onNavigate('player')
+              else onNavigate('player')
+            }}
+          />
         </div>
       </header>
 

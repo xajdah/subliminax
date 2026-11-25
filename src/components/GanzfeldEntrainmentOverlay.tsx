@@ -8,6 +8,7 @@ import {
   type GanzfeldWaveform,
 } from '../audio/AudioVisualPhaseSync'
 import { psychoEngine } from '../audio/PsychoacousticEngine'
+import { accountStorage } from '../services/accountStorage'
 import { GanzfeldSafetyModal } from './GanzfeldSafetyModal'
 
 interface Props {
@@ -20,6 +21,7 @@ const SESSION_CONSENT_KEY = 'subliminax.ganzfeld.consentSession'
 
 function hasSessionConsent() {
   try {
+    if (accountStorage.get().preferences.ganzfeldSafetyConsent) return true
     return sessionStorage.getItem(SESSION_CONSENT_KEY) === '1'
   } catch {
     return false
@@ -29,6 +31,7 @@ function hasSessionConsent() {
 function setSessionConsent() {
   try {
     sessionStorage.setItem(SESSION_CONSENT_KEY, '1')
+    accountStorage.updatePreferences({ ganzfeldSafetyConsent: true })
   } catch {
     /* private mode */
   }

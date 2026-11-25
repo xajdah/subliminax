@@ -14,6 +14,7 @@ import {
   type ManifestationMode,
 } from '../../audio/manifestationCalibration'
 import { applyOptimalMixLevels } from '../../data/mixLevels'
+import { accountStorage } from '../../services/accountStorage'
 import { savedMixStorage, titleForSession } from '../../services/savedMixStorage'
 import type { SavedMix } from '../../types/savedMix'
 import type { PsychoacousticState } from '../../types/psychoacoustic'
@@ -59,11 +60,15 @@ export function CreateSubliminal({ onHome, initialMix = null, onOpenSaved }: Pro
   const engine = useMixEngine()
   const psycho = usePsychoEngine()
   const mixIdRef = useRef<string | undefined>(initialMix?.id)
-  const [session, setSession] = useState<CreateSession>(() =>
-    normalizeSession(
-      initialMix ? structuredClone(initialMix.session) : createDefaultSession(),
-    ),
-  )
+  const [session, setSession] = useState<CreateSession>(() => {
+    const base = initialMix
+      ? structuredClone(initialMix.session)
+      : {
+          ...createDefaultSession(),
+          manifestationMode: accountStorage.get().preferences.manifestationMode,
+        }
+    return normalizeSession(base)
+  })
   const [issueQuery, setIssueQuery] = useState('')
   const [completeFlash, setCompleteFlash] = useState(false)
   const [saveMsg, setSaveMsg] = useState<string | null>(null)

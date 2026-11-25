@@ -23,6 +23,7 @@ import {
   trimScriptToTtsLimit,
   truncateAudioBuffer,
 } from '../../services/voiceLimits'
+import { getUserVoiceSampleUrl } from '../../services/accountStorage'
 import type { VoiceConfig, VoiceMode } from '../../types/studio'
 
 interface Props {
@@ -388,6 +389,21 @@ export function VoiceDeliveryPanel({ voice, onChange }: Props) {
 
       {voice.mode === 'clone' && (
         <div className="space-y-3">
+          {(() => {
+            const masterUrl = getUserVoiceSampleUrl()
+            return masterUrl ? (
+              <div className="rounded-lg border border-[var(--border)] p-3 text-xs text-muted">
+                <p className="font-semibold text-ink">Master Voice Clone (Account Hub)</p>
+                <p className="mt-1">48 kHz calibration sample is available for this session.</p>
+                <audio controls src={masterUrl} className="mt-2 h-9 w-full max-w-sm" />
+              </div>
+            ) : (
+              <p className="text-xs text-muted">
+                Tip: calibrate a Master Voice Clone in Account Hub (avatar → Profile & Voice) for a
+                shared sample across Studio, Study, and REMscribe.
+              </p>
+            )
+          })()}
           <div className="flex flex-wrap gap-1.5">
             {CLONE_PROFILES.map((p) => (
               <button

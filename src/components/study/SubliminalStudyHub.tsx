@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { getOptimalStudyConfig } from '../../audio/studyPsychoacoustics'
+import { accountStorage } from '../../services/accountStorage'
 import { generateStudyLesson } from '../../services/studyGenerator'
 import { useTheme } from '../../hooks/useTheme'
 import {
@@ -19,7 +20,11 @@ type Phase = 'setup' | 'player'
 
 export function SubliminalStudyHub({ onHome }: Props) {
   const { theme, toggleTheme } = useTheme()
-  const [session, setSession] = useState<StudySession>(() => createDefaultStudySession())
+  const [session, setSession] = useState<StudySession>(() => {
+    const base = createDefaultStudySession()
+    const prefs = accountStorage.get().preferences
+    return { ...base, outputDevice: prefs.outputDevice }
+  })
   const [phase, setPhase] = useState<Phase>('setup')
   const [generating, setGenerating] = useState(false)
   const [error, setError] = useState<string | null>(null)

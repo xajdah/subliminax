@@ -11,6 +11,7 @@ import {
   decodeRecordingToBuffer,
   synthesizeAffirmationBuffer,
 } from '../../services/voiceBufferService'
+import { getUserVoiceSampleUrl } from '../../services/accountStorage'
 import { voiceCloneService } from '../../services/voiceCloneService'
 import { savedMixStorage } from '../../services/savedMixStorage'
 import { createDefaultSession } from '../../types/studio'
@@ -252,6 +253,13 @@ export function SubliminalStudyPlayer({ session, onChange, onBack }: Props) {
       {/* Voice options */}
       <section className="panel space-y-3 p-5">
         <h2 className="panel-title text-lg">Voice</h2>
+        {getUserVoiceSampleUrl() && (
+          <div className="rounded-lg border border-[var(--border)] p-3 text-xs text-muted">
+            <p className="font-semibold text-ink">Master Voice Clone</p>
+            <p className="mt-1">Using your Account Hub calibration sample.</p>
+            <audio controls src={getUserVoiceSampleUrl()!} className="mt-2 h-9 w-full max-w-sm" />
+          </div>
+        )}
         <div className="flex flex-wrap gap-2">
           {!recording ? (
             <button type="button" className="btn btn-teal" onClick={() => void startRecord()}>

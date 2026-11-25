@@ -359,6 +359,29 @@ export const FEATURE_GUIDE_SECTIONS: FeatureGuideSection[] = [
           'Highlights and a 5-question flash quiz appear above the script.',
         ],
       },
+      {
+        id: 'account-hub',
+        title: 'Account & Neuro-Profile Hub',
+        summary: 'Avatar menu · voice vault · listening history · Matrix Cards · billing.',
+        whatFor:
+          'Your profile, Master Voice Clone sample, listening telemetry, saved Matrix Cards, hardware defaults, and plan limits — all from the top-right avatar.',
+        howTo: [
+          'Tap the avatar on Home for a quick summary (handle, plan, listening hours).',
+          'Open Account Hub → Profile & Voice to crop an avatar and record a 48 kHz PCM WAV calibration (~30s script).',
+          'Progress shows Vision Board momentum, mode hours, and searchable track history.',
+          'Neuro-Defaults sets Headphones/Speakers, Optimal Mix Calibration, REMscribe language, and Ganzfeld consent.',
+          'Subscription shows tier limits and Upgrade / Manage Billing.',
+        ],
+        expect: [
+          'Master voice sample is shared with Studio (Create), Subliminal Study, and REMscribe via userVoiceSampleUrl.',
+          'Profile and preferences persist in this browser; voice WAV is stored in IndexedDB.',
+          'Billing UI is a local demo until Stripe (or similar) is connected.',
+        ],
+        tips: [
+          'Re-record the Master Voice Clone anytime; older blob URLs are revoked automatically.',
+          'Ganzfeld consent saved here skips the session safety modal on later launches.',
+        ],
+      },
     ],
   },
 ]
