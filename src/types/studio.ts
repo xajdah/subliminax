@@ -45,6 +45,7 @@ export type MoodCategory =
   | 'inspiring'
   | 'focusing'
   | 'sleeping'
+  | 'loving'
 
 export type VoiceMode = 'record' | 'clone' | 'narrator' | 'none'
 
