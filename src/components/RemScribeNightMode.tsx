@@ -8,6 +8,9 @@ interface Props {
   listening: boolean
   dreamCapturing: boolean
   speechHint: string | null
+  /** When false, wake-word STT is off — use Record dream for local clips. */
+  cloudSpeech?: boolean
+  onRecordDream?: () => void
   onEndNight: () => void
 }
 
@@ -33,6 +36,8 @@ export function RemScribeNightMode({
   listening,
   dreamCapturing,
   speechHint,
+  cloudSpeech = false,
+  onRecordDream,
   onEndNight,
 }: Props) {
   const [holdProgress, setHoldProgress] = useState(0)
@@ -96,13 +101,26 @@ export function RemScribeNightMode({
           <span className="opacity-80">
             {dreamCapturing
               ? 'Capturing dream… speak freely'
-              : listening
+              : cloudSpeech && listening
                 ? 'Listening for “Record”'
-                : 'Mic idle'}
+                : listening
+                  ? 'Local mic · acoustic events'
+                  : 'Mic idle'}
           </span>
         </div>
-        {speechHint && (
+        {cloudSpeech && speechHint && (
           <p className="max-w-sm truncate text-center text-xs opacity-50">“…{speechHint}”</p>
+        )}
+
+        {onRecordDream && (
+          <button
+            type="button"
+            className="w-full rounded-full border border-[#7C2D12]/40 px-4 py-3 text-sm font-semibold uppercase tracking-[0.14em] disabled:opacity-40"
+            disabled={dreamCapturing || !listening}
+            onClick={onRecordDream}
+          >
+            {dreamCapturing ? 'Recording…' : 'Record dream'}
+          </button>
         )}
 
         <button

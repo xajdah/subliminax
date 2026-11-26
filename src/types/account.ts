@@ -23,6 +23,12 @@ export interface AccountPreferences {
   remscribeLanguage: DreamLanguageCode
   /** Persistent Ganzfeld photosensitivity consent */
   ganzfeldSafetyConsent: boolean
+  /**
+   * Opt-in: allow browser Web Speech (may use vendor cloud) for REMscribe
+   * wake-word probes and dream transcripts. Default off — local mic events
+   * and MediaRecorder dream clips still work without it.
+   */
+  remscribeCloudSpeech: boolean
 }
 
 export interface ListeningModeHours {
@@ -108,6 +114,7 @@ export function createDefaultAccountStore(): AccountStore {
       manifestationMode: 'standard',
       remscribeLanguage: 'en-US',
       ganzfeldSafetyConsent: false,
+      remscribeCloudSpeech: false,
     },
     modeHours: {
       manifestation: 0,

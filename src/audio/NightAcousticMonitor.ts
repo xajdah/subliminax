@@ -1,9 +1,13 @@
 /**
  * Overnight acoustic event classifier + wake-word dream recorder.
  * Uses getUserMedia with echoCancellation so app playback is ignored and
- * spectral heuristics for event tagging. Web Speech API is never left on
- * continuously overnight (privacy) — it only opens in short, local-gated
- * bursts when speech-like audio is detected, or during an active dream capture.
+ * spectral heuristics for event tagging.
+ *
+ * Browser Web Speech is **opt-in** (`cloudSpeechEnabled`). When enabled it
+ * only opens in short, local-gated bursts (wake probe ≤3.5s; dream transcript
+ * as non-continuous chunks — never continuous overnight streaming). When
+ * disabled, acoustic events stay fully local and dream capture is
+ * MediaRecorder-only (tap “Record dream” on the night HUD).
  */
 
 import { psychoEngine } from './PsychoacousticEngine'
@@ -182,8 +186,11 @@ export class NightAcousticMonitor {
   private recognition: SpeechRec | null = null
   /** User/browser still allows speech probes (false after not-allowed) */
   private speechAllowed = true
+  /** Explicit opt-in for vendor Web Speech (may leave the device). Default off. */
+  private cloudSpeechEnabled = false
   /** Active short-lived recognition mode */
   private speechMode: 'off' | 'wakeProbe' | 'dreamTranscript' = 'off'
+  private dreamBurstTimer: number | null = null
   private dreamCapturing = false
   private dreamChunks: BlobPart[] = []
   private dreamRecorder: MediaRecorder | null = null
@@ -199,9 +206,14 @@ export class NightAcousticMonitor {
   private freqBuf = new Float32Array(0)
   private rmsEma = 0
 
-  configure(language: DreamLanguageCode, cbs?: NightMonitorCallbacks) {
+  configure(
+    language: DreamLanguageCode,
+    cbs?: NightMonitorCallbacks,
+    opts?: { cloudSpeech?: boolean },
+  ) {
     this.language = language
     if (cbs) this.cbs = cbs
+    if (opts?.cloudSpeech != null) this.cloudSpeechEnabled = opts.cloudSpeech
   }
 
   isRunning() {
@@ -212,10 +224,26 @@ export class NightAcousticMonitor {
     return this.dreamCapturing
   }
 
-  async start(language: DreamLanguageCode, sessionStartMs: number, cbs?: NightMonitorCallbacks) {
+  usesCloudSpeech() {
+    return this.cloudSpeechEnabled && this.speechAllowed
+  }
+
+  /** Manual / local wake — starts a dream MediaRecorder clip without Web Speech. */
+  requestDreamCapture() {
+    if (!this.running || this.dreamCapturing) return
+    void this.beginDreamCapture()
+  }
+
+  async start(
+    language: DreamLanguageCode,
+    sessionStartMs: number,
+    cbs?: NightMonitorCallbacks,
+    opts?: { cloudSpeech?: boolean },
+  ) {
     this.language = language
     this.sessionStart = sessionStartMs
     if (cbs) this.cbs = cbs
+    if (opts?.cloudSpeech != null) this.cloudSpeechEnabled = opts.cloudSpeech
     await this.stop()
 
     try {
@@ -271,9 +299,9 @@ export class NightAcousticMonitor {
     if (!this.dreamCapturing) {
       const kind = classifyFeatures(f, spike)
       if (kind) void this.emitEvent(kind, f.rms)
-      // Local-only gate: only when speech-like audio is heard, open a short
-      // SpeechRecognition probe for the wake word (then abort).
+      // Opt-in cloud speech only: short wake-word probe, then abort.
       if (
+        this.cloudSpeechEnabled &&
         (kind === 'sleepTalking' || kind === 'humanTalking' || (spike && f.hnrProxy > 3.2)) &&
         this.speechAllowed &&
         this.speechMode === 'off'
@@ -346,6 +374,7 @@ export class NightAcousticMonitor {
 
   /** Short non-continuous SpeechRecognition window for wake-word only. */
   private openWakeProbe() {
+    if (!this.cloudSpeechEnabled) return
     const now = Date.now()
     if (now - this.lastWakeProbeAt < this.wakeProbeCooldownMs) return
     if (!this.speechAllowed || this.dreamCapturing || !this.running) return
@@ -385,29 +414,52 @@ export class NightAcousticMonitor {
     }
   }
 
+  /**
+   * Dream transcript via short non-continuous bursts (≤6s each), not a continuous
+   * overnight SpeechRecognition session. Gaps between bursts keep the cloud channel closed.
+   */
   private startDreamTranscriptRecognition() {
-    if (!this.speechAllowed || !this.running) return
+    if (!this.cloudSpeechEnabled || !this.speechAllowed || !this.running) return
     this.clearWakeProbeTimer()
+    this.clearDreamBurstTimer()
     this.stopSpeechRecognition()
     this.speechMode = 'dreamTranscript'
     this.startSpeechRecognitionSession({
-      continuous: true,
+      continuous: false,
       interimResults: true,
       onHeard: (_heard, finalText) => {
         if (finalText) this.dreamTranscript += `${finalText.trim()} `
         if (_heard) this.cbs.onSpeechPartial?.(_heard)
       },
       onEnded: () => {
-        // Only auto-restart while an active dream capture still needs transcript
+        // Schedule the next short burst only while the dream clip is still open
         if (this.running && this.dreamCapturing && this.speechMode === 'dreamTranscript') {
-          try {
-            this.recognition?.start()
-          } catch {
-            /* restart race */
-          }
+          this.dreamBurstTimer = window.setTimeout(() => {
+            this.dreamBurstTimer = null
+            if (this.running && this.dreamCapturing && this.cloudSpeechEnabled) {
+              this.startDreamTranscriptRecognition()
+            }
+          }, 900)
         }
       },
     })
+    // Hard-stop each burst so recognition cannot linger
+    this.dreamBurstTimer = window.setTimeout(() => {
+      if (this.speechMode === 'dreamTranscript') {
+        try {
+          this.recognition?.stop()
+        } catch {
+          this.stopSpeechRecognition()
+        }
+      }
+    }, 6000)
+  }
+
+  private clearDreamBurstTimer() {
+    if (this.dreamBurstTimer != null) {
+      window.clearTimeout(this.dreamBurstTimer)
+      this.dreamBurstTimer = null
+    }
   }
 
   private startSpeechRecognitionSession(opts: {
@@ -462,6 +514,7 @@ export class NightAcousticMonitor {
 
   private stopSpeechRecognition() {
     this.clearWakeProbeTimer()
+    this.clearDreamBurstTimer()
     const rec = this.recognition
     this.recognition = null
     const wasDream = this.speechMode === 'dreamTranscript'
@@ -484,8 +537,8 @@ export class NightAcousticMonitor {
     this.dreamChunks = []
     this.cbs.onDreamCapturing?.(true)
     psychoEngine.playConfirmChime(432, 0.55)
-    // Speech recognition only while the dream clip is being spoken
-    this.startDreamTranscriptRecognition()
+    // Optional cloud STT bursts while the local MediaRecorder captures audio
+    if (this.cloudSpeechEnabled) this.startDreamTranscriptRecognition()
 
     try {
       const mr = new MediaRecorder(this.stream, { mimeType: preferredMime() })
@@ -559,6 +612,7 @@ export class NightAcousticMonitor {
     this.speechMode = 'off'
     cancelAnimationFrame(this.raf)
     this.clearWakeProbeTimer()
+    this.clearDreamBurstTimer()
     if (this.silenceTimer != null) {
       window.clearTimeout(this.silenceTimer)
       this.silenceTimer = null

@@ -80,6 +80,24 @@ export function PreferencesTab({ store }: Props) {
         </select>
       </Field>
 
+      <Field label="REMscribe Web Speech (opt-in)">
+        <label className="flex cursor-pointer items-start gap-3 rounded-xl border border-[var(--border)] p-3">
+          <input
+            type="checkbox"
+            className="mt-1 accent-[var(--accent)]"
+            checked={p.remscribeCloudSpeech === true}
+            onChange={(e) =>
+              accountStorage.updatePreferences({ remscribeCloudSpeech: e.target.checked })
+            }
+          />
+          <span className="text-sm text-ink">
+            Allow short wake-word / dream transcript bursts via the browser’s speech service
+            (may use vendor cloud). Off by default — acoustic events and MediaRecorder dream clips
+            stay local without this.
+          </span>
+        </label>
+      </Field>
+
       <Field label="Ganzfeld safety consent">
         <label className="flex cursor-pointer items-start gap-3 rounded-xl border border-[var(--border)] p-3">
           <input
