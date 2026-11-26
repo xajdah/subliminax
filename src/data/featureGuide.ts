@@ -294,17 +294,18 @@ export const FEATURE_GUIDE_SECTIONS: FeatureGuideSection[] = [
       {
         id: 'remscribe',
         title: 'REMscribe',
-        summary: 'Overnight entrainment, acoustic events, wake-word dream journaling.',
+        summary: 'Overnight entrainment, local acoustic events, optional dream journaling.',
         whatFor: 'Run a multi-hour sleep curve with calming bed, mic sensing, and morning report.',
         howTo: [
           'Choose duration (or custom wake), calming night bed, and dream language.',
+          'Leave Web Speech off (default) for fully local nights — tap “Record dream” on the night HUD for MediaRecorder clips.',
+          'Opt in to browser Web Speech only if you want short wake-word / transcript bursts (may use vendor cloud).',
           'Begin Night Session — screen dims; end anytime for the morning report.',
-          'Say the wake word (e.g. “Record”) when you want to capture a dream.',
         ],
         expect: [
           'Adaptive curve: Descent → Deep Delta → REM waves → Pre-dawn ascent.',
           'Mic analysis for snoring / movement stays local.',
-          'Browser speech recognition opens only in short bursts when speech is detected — not continuously all night.',
+          'Web Speech is opt-in and never continuous overnight — only short gated bursts when enabled.',
         ],
         tips: ['Use headphones at a comfortable low level; keep the phone/laptop charging.'],
       },

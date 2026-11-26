@@ -60,6 +60,9 @@ export function RemScribeHub({ onHome }: Props) {
   const [language, setLanguage] = useState<DreamLanguageCode>(
     () => accountStorage.get().preferences.remscribeLanguage ?? 'en-US',
   )
+  const [cloudSpeech, setCloudSpeech] = useState(
+    () => accountStorage.get().preferences.remscribeCloudSpeech === true,
+  )
   const [musicTrackId, setMusicTrackId] = useState(DEFAULT_CALMING_TRACK_ID)
   const [session, setSession] = useState<RemScribeSession | null>(null)
   const [remainingMs, setRemainingMs] = useState(0)
@@ -188,28 +191,33 @@ export function RemScribeHub({ onHome }: Props) {
         { musicTrackId },
       )
 
-      await nightAcousticMonitor.start(language, startedAt, {
-        onListening: setListening,
-        onDreamCapturing: setDreamCapturing,
-        onSpeechPartial: (t) => setSpeechHint(t.slice(-80)),
-        onError: (msg) => setError(msg),
-        onEvent: (event: AcousticEvent) => {
-          setSession((prev) => {
-            if (!prev) return prev
-            const updated = { ...prev, events: [...prev.events, event] }
-            remscribeStorage.upsert(updated)
-            return updated
-          })
+      await nightAcousticMonitor.start(
+        language,
+        startedAt,
+        {
+          onListening: setListening,
+          onDreamCapturing: setDreamCapturing,
+          onSpeechPartial: (t) => setSpeechHint(t.slice(-80)),
+          onError: (msg) => setError(msg),
+          onEvent: (event: AcousticEvent) => {
+            setSession((prev) => {
+              if (!prev) return prev
+              const updated = { ...prev, events: [...prev.events, event] }
+              remscribeStorage.upsert(updated)
+              return updated
+            })
+          },
+          onDream: (dream: DreamLog) => {
+            setSession((prev) => {
+              if (!prev) return prev
+              const updated = { ...prev, dreams: [...prev.dreams, dream] }
+              remscribeStorage.upsert(updated)
+              return updated
+            })
+          },
         },
-        onDream: (dream: DreamLog) => {
-          setSession((prev) => {
-            if (!prev) return prev
-            const updated = { ...prev, dreams: [...prev.dreams, dream] }
-            remscribeStorage.upsert(updated)
-            return updated
-          })
-        },
-      })
+        { cloudSpeech },
+      )
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Could not start REMscribe night.')
       setHubPhase('setup')
@@ -234,6 +242,8 @@ export function RemScribeHub({ onHome }: Props) {
         listening={listening}
         dreamCapturing={dreamCapturing}
         speechHint={speechHint}
+        cloudSpeech={cloudSpeech}
+        onRecordDream={() => nightAcousticMonitor.requestDreamCapture()}
         onEndNight={() => void endNight()}
       />
     )
@@ -336,7 +346,8 @@ export function RemScribeHub({ onHome }: Props) {
       <section className="panel mb-5 space-y-4 p-5">
         <h2 className="panel-title text-lg">Dream Recognition Language</h2>
         <p className="text-sm text-muted">
-          Wake word “Record” plus localized equivalents. Speech recognition runs in the selected locale.
+          Locale for optional wake-word / transcript when cloud speech is enabled. Acoustic events
+          always stay on-device.
         </p>
         <div className="grid gap-2 sm:grid-cols-2">
           {DREAM_LANGUAGES.map((lang) => (
@@ -354,6 +365,26 @@ export function RemScribeHub({ onHome }: Props) {
             </button>
           ))}
         </div>
+        <label className="flex cursor-pointer items-start gap-3 rounded-xl border border-[var(--border)] p-3">
+          <input
+            type="checkbox"
+            className="mt-1 accent-[var(--accent)]"
+            checked={cloudSpeech}
+            onChange={(e) => {
+              const on = e.target.checked
+              setCloudSpeech(on)
+              accountStorage.updatePreferences({ remscribeCloudSpeech: on })
+            }}
+          />
+          <span className="text-sm text-ink">
+            <span className="font-medium">Allow browser Web Speech (opt-in)</span>
+            <span className="mt-1 block text-xs text-muted">
+              Off by default. When on, short wake-word probes and dream transcript bursts may use
+              the browser’s speech service (vendor cloud). Dream audio clips always record locally
+              via MediaRecorder — use “Record dream” on the night HUD if you keep this off.
+            </span>
+          </span>
+        </label>
       </section>
 
       <section className="panel mb-5 space-y-3 p-5">
@@ -397,9 +428,8 @@ export function RemScribeHub({ onHome }: Props) {
         {starting ? 'Preparing night…' : 'Begin Night Session'}
       </button>
       <p className="mt-3 text-center text-xs text-muted">
-        OLED night mode dims the screen. Mic stays local for acoustic events; browser speech
-        recognition opens only in short bursts when speech is detected (wake word / dream), not
-        continuously overnight.
+        OLED night mode dims the screen. Mic analysis for snoring / movement stays local. Browser
+        Web Speech is opt-in above — never continuous overnight streaming.
       </p>
     </div>
   )
