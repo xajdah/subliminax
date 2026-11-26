@@ -114,7 +114,8 @@ export const FEATURE_GUIDE_SECTIONS: FeatureGuideSection[] = [
       {
         id: 'create-soundtrack',
         title: 'Step 4 · Soundtrack by mood',
-        summary: 'Calming / Energizing (real AUDIO beds) plus other mood synths.',
+        summary:
+          'Calming, Energizing, Focusing, Sleeping, Inspiring, Loving — real AUDIO beds when available.',
         whatFor: 'Chooses the musical bed under carriers and voice.',
         howTo: [
           'Pick a mood, then a track tile.',
@@ -122,8 +123,8 @@ export const FEATURE_GUIDE_SECTIONS: FeatureGuideSection[] = [
           'When a mood has real MP3 beds, only those AUDIO tiles are listed.',
         ],
         expect: [
-          'Energizing beds may stream from Cloudflare R2; Calming can be local or remote.',
-          'Synth tiles generate procedural sound in the browser.',
+          'Energizing, Focusing, Sleeping, Inspiring, and Loving beds stream from Cloudflare R2; Calming can be local.',
+          'Synth tiles remain as fallbacks when a mood has no MP3 beds yet.',
         ],
       },
       {

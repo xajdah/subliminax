@@ -755,8 +755,9 @@ function SoundtrackStep({
     <section className="panel space-y-4 p-5">
       <h2 className="panel-title text-lg">Step 4 · Soundtrack by Mood</h2>
       <p className="text-sm text-muted">
-        Each mood lists only its own beds — Calming and Energizing show their real music tracks;
-        other moods use synth beds. ▶ on a tile (or Play track) auditions that bed alone — no
+        Each mood lists only its own beds — Calming (local), Energizing / Focusing / Sleeping /
+        Inspiring / Loving (R2) show real music tracks when available. ▶ on a tile (or Play track)
+        auditions that bed alone — no
         frequency tone and no narration. Full mix plays later on Ambient / Mix. On cloud VMs
         without speakers, use <span className="text-ink">Download 12s WAV</span>.
       </p>
