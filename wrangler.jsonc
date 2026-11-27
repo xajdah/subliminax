@@ -10,6 +10,11 @@
     { "pattern": "subliminax.com", "custom_domain": true },
     { "pattern": "www.subliminax.com", "custom_domain": true }
   ],
+  // Used by local `wrangler deploy` (Workers Builds ignores this — set Build
+  // command to `npm run build` in the Cloudflare dashboard as well).
+  "build": {
+    "command": "npm run build"
+  },
   // Vite SPA output — keeps Worker deploys serving the React build
   "assets": {
     "directory": "./dist",
