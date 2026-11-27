@@ -7,6 +7,8 @@ import { ThemeToggle } from '../ThemeToggle'
 
 interface Props {
   onNavigate: (view: AppView, launch?: AureviaLaunch | null) => void
+  /** Play a saved mix id from Account Hub history (opens Saved + mini-player). */
+  onPlaySavedMix?: (mixId: string) => void
 }
 
 const CARDS: {
@@ -80,7 +82,7 @@ const CARDS: {
   },
 ]
 
-export function HomeHub({ onNavigate }: Props) {
+export function HomeHub({ onNavigate, onPlaySavedMix }: Props) {
   const { theme, toggleTheme } = useTheme()
   const door = skyDoor()
   const night = dreamHour()
@@ -101,8 +103,8 @@ export function HomeHub({ onNavigate }: Props) {
           <ThemeToggle theme={theme} onToggle={toggleTheme} />
           <AccountAvatarMenu
             onPlayTrack={(mixId) => {
-              if (mixId) onNavigate('player')
-              else onNavigate('player')
+              onNavigate('saved')
+              if (mixId) onPlaySavedMix?.(mixId)
             }}
           />
         </div>

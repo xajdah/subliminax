@@ -30,13 +30,13 @@ export const FEATURE_GUIDE_SECTIONS: FeatureGuideSection[] = [
       {
         id: 'overview',
         title: 'How the studio fits together',
-        summary: 'Create → Save → Player · plus overnight, voyage, and visual modules.',
+        summary: 'Create → Save → play from Saved Tracks · plus overnight, voyage, and visual modules.',
         whatFor:
-          'One place to build frequency + soundtrack + ambient + affirmation mixes, then listen with cymatics or an X-Ray equalizer.',
+          'One place to build frequency + soundtrack + ambient + affirmation mixes, then listen from Saved Tracks.',
         howTo: [
           'Start at Home → Create Subliminal (or Quick Presets for a curated kickoff).',
           'Walk the seven steps; on Mix, preview and tap Complete track.',
-          'Open Saved Tracks or Subliminal Player to listen and fine-tune levels.',
+          'Open Saved Tracks to Play (corner mini-player), Edit, Share, or Clone.',
           'Use REMscribe for overnight sessions, Ganzfeld for closed-eye flicker, Aurevia for short voyages.',
         ],
         expect: [

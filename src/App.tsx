@@ -13,6 +13,7 @@ import { SubliminalStudyHub } from './components/study/SubliminalStudyHub'
 import { VisionBoardHub } from './components/vision/VisionBoardHub'
 import { clearAureviaQuery, readAureviaLaunch, type AureviaLaunch } from './data/aureviaShare'
 import { useSavedMixPlayback } from './hooks/useSavedMixPlayback'
+import { savedMixStorage } from './services/savedMixStorage'
 import type { SavedMix } from './types/savedMix'
 import type { AppView } from './types/studio'
 
@@ -43,7 +44,16 @@ export default function App() {
   }
 
   let body: ReactNode
-  if (view === 'home') body = <HomeHub onNavigate={go} />
+  if (view === 'home')
+    body = (
+      <HomeHub
+        onNavigate={go}
+        onPlaySavedMix={(mixId) => {
+          const mix = savedMixStorage.get(mixId)
+          if (mix) void playback.playMix(mix)
+        }}
+      />
+    )
   else if (view === 'create' || view === 'studio' || view === 'presets')
     body = (
       <CreateSubliminal

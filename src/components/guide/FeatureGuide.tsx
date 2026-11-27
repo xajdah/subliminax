@@ -135,8 +135,8 @@ export function FeatureGuide({ onHome }: Props) {
       )}
 
       <p className="mt-8 text-center text-xs text-muted">
-        Guidelines reflect the current studio build. Advanced tool names match Create → Mix and the
-        Subliminal Player.
+        Guidelines reflect the current studio build. Advanced tool names match Create → Mix; playback
+        uses the Saved Tracks corner mini-player.
       </p>
     </div>
   )
