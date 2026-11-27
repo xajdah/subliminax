@@ -1,0 +1,21 @@
+# Cloudflare Worker (not Pages) — single source of truth for Workers Builds.
+# Do not add pages_build_output_dir; that makes `wrangler deploy` treat this as Pages.
+name = "subliminax"
+main = "src/index.js"
+compatibility_date = "2026-11-23"
+
+[observability]
+enabled = true
+
+[[routes]]
+pattern = "subliminax.com"
+custom_domain = true
+
+[[routes]]
+pattern = "www.subliminax.com"
+custom_domain = true
+
+[assets]
+directory = "./dist"
+binding = "ASSETS"
+not_found_handling = "single-page-application"
