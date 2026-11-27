@@ -57,12 +57,6 @@ const CARDS: {
     blurb: 'Goal manifestation hub — collage boards, live countdowns, progress tracking.',
   },
   {
-    id: 'player',
-    title: 'Subliminal Player',
-    blurb:
-      'Play saved mixes with frequency cymatics, X-Ray EQ, mix volumes, and advanced tools.',
-  },
-  {
     id: 'ganzfeld',
     title: 'Ganzfeld Visual Sync',
     blurb: 'Closed-eye photic flicker locked to the entrainment phase — separate from Create.',
@@ -70,7 +64,8 @@ const CARDS: {
   {
     id: 'saved',
     title: 'Saved Tracks',
-    blurb: 'Completed mixes on this device — open in Player, edit, export, or delete.',
+    blurb:
+      'Completed mixes on this device — play in a corner mini-player, edit, share, clone, or export.',
   },
   {
     id: 'presets',

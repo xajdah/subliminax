@@ -3,6 +3,7 @@ import { downloadPreviewWav } from '../../audio/previewExport'
 import { getTrack } from '../../data/moodTracks'
 import { useTheme } from '../../hooks/useTheme'
 import { savedMixStorage } from '../../services/savedMixStorage'
+import { shareSavedMix } from '../../services/shareSavedMix'
 import type { SavedMix } from '../../types/savedMix'
 import { FeatureGuidelines } from '../guide/FeatureGuidelines'
 import { ThemeToggle } from '../ThemeToggle'
@@ -11,7 +12,8 @@ interface Props {
   onHome: () => void
   onEdit: (mix: SavedMix) => void
   onCreate: () => void
-  onPlayInPlayer: (mix: SavedMix) => void
+  onPlay: (mix: SavedMix) => void
+  playingMixId?: string | null
 }
 
 function formatWhen(ts: number): string {
@@ -25,7 +27,13 @@ function formatWhen(ts: number): string {
   }
 }
 
-export function SavedMixesHub({ onHome, onEdit, onCreate, onPlayInPlayer }: Props) {
+export function SavedMixesHub({
+  onHome,
+  onEdit,
+  onCreate,
+  onPlay,
+  playingMixId = null,
+}: Props) {
   const { theme, toggleTheme } = useTheme()
   const [mixes, setMixes] = useState<SavedMix[]>(() => savedMixStorage.list())
   const [exportingId, setExportingId] = useState<string | null>(null)
@@ -55,6 +63,27 @@ export function SavedMixesHub({ onHome, onEdit, onCreate, onPlayInPlayer }: Prop
     window.setTimeout(() => setNote(null), 4000)
   }
 
+  const cloneMix = (mix: SavedMix) => {
+    const copy = savedMixStorage.clone(mix.id)
+    if (!copy) {
+      setNote('Could not clone this mix.')
+      return
+    }
+    setNote(`Cloned as “${copy.title}”.`)
+    window.setTimeout(() => setNote(null), 4000)
+  }
+
+  const shareMix = async (mix: SavedMix) => {
+    try {
+      const result = await shareSavedMix(mix)
+      setNote(result === 'shared' ? `Shared “${mix.title}”.` : `Copied “${mix.title}” to clipboard.`)
+    } catch (e) {
+      if (e instanceof DOMException && e.name === 'AbortError') return
+      setNote('Could not share this mix.')
+    }
+    window.setTimeout(() => setNote(null), 4000)
+  }
+
   return (
     <div className="mx-auto min-h-screen max-w-4xl px-4 py-5 sm:px-6">
       <header className="mb-6 flex flex-wrap items-center gap-3">
@@ -64,7 +93,7 @@ export function SavedMixesHub({ onHome, onEdit, onCreate, onPlayInPlayer }: Prop
         <div className="min-w-0">
           <h1 className="font-display text-xl font-extrabold">Saved Tracks</h1>
           <p className="text-sm text-muted">
-            Mixes you complete in Create stay here on this device.
+            Play keeps running in the corner mini-player while you browse the app.
           </p>
         </div>
         <div className="ml-auto flex items-center gap-2">
@@ -88,7 +117,7 @@ export function SavedMixesHub({ onHome, onEdit, onCreate, onPlayInPlayer }: Prop
           <h2 className="panel-title text-lg">No saved mixes yet</h2>
           <p className="text-sm text-muted">
             Finish a session in Create Subliminal and tap <strong>Complete track</strong> — it will
-            appear here so you can play, edit, or export it later.
+            appear here so you can play, edit, share, or clone it later.
           </p>
           <button type="button" className="btn btn-primary" onClick={onCreate}>
             Create Subliminal
@@ -99,11 +128,23 @@ export function SavedMixesHub({ onHome, onEdit, onCreate, onPlayInPlayer }: Prop
           {mixes.map((mix) => {
             const track = getTrack(mix.session.soundtrack.trackId)
             const ambientsOn = mix.session.ambients.filter((a) => a.enabled).length
+            const isPlaying = playingMixId === mix.id
             return (
-              <li key={mix.id} className="panel p-4 sm:p-5">
+              <li
+                key={mix.id}
+                className="panel p-4 sm:p-5"
+                data-playing={isPlaying ? '1' : '0'}
+              >
                 <div className="flex flex-wrap items-start gap-3">
                   <div className="min-w-0 flex-1">
-                    <h2 className="font-display text-lg font-bold text-ink">{mix.title}</h2>
+                    <h2 className="font-display text-lg font-bold text-ink">
+                      {mix.title}
+                      {isPlaying ? (
+                        <span className="ml-2 text-xs font-semibold text-[var(--accent-2)]">
+                          Playing
+                        </span>
+                      ) : null}
+                    </h2>
                     <p className="mt-1 text-xs text-muted">
                       Updated {formatWhen(mix.updatedAt)} · {mix.session.frequency.hz} Hz ·{' '}
                       {track?.name ?? 'Soundtrack'} · {ambientsOn} ambient
@@ -119,12 +160,22 @@ export function SavedMixesHub({ onHome, onEdit, onCreate, onPlayInPlayer }: Prop
                     <button
                       type="button"
                       className="btn btn-teal"
-                      onClick={() => onPlayInPlayer(mix)}
+                      onClick={() => onPlay(mix)}
                     >
-                      Open Player
+                      {isPlaying ? 'Replay' : 'Play'}
                     </button>
                     <button type="button" className="btn btn-primary" onClick={() => onEdit(mix)}>
                       Edit
+                    </button>
+                    <button
+                      type="button"
+                      className="btn btn-ghost"
+                      onClick={() => void shareMix(mix)}
+                    >
+                      Share
+                    </button>
+                    <button type="button" className="btn btn-ghost" onClick={() => cloneMix(mix)}>
+                      Clone
                     </button>
                     <button
                       type="button"
