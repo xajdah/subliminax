@@ -1,20 +1,9 @@
 import { useEffect, useRef } from 'react'
 import type { BusAnalysers } from '../../audio/PsychoacousticEngine'
 
-const BUS_COLORS = {
-  music: '#6366f1',
-  soundscape: '#14b8a6',
-  frequency: '#f59e0b',
-  voice: '#22d3ee',
-} as const
-
-const BANDS: { id: string; lo: number; hi: number; label: string }[] = [
-  { id: 'delta', lo: 0.5, hi: 4, label: 'Δ' },
-  { id: 'theta', lo: 4, hi: 8, label: 'Θ' },
-  { id: 'alpha', lo: 8, hi: 12, label: 'Α' },
-  { id: 'beta', lo: 12, hi: 30, label: 'Β' },
-  { id: 'gamma', lo: 30, hi: 100, label: 'Γ' },
-]
+const BAR_COUNT = 48
+const BAR_COLOR = '#e8913a'
+const MASK_COLOR = '#5eead4'
 
 interface Props {
   analysers: BusAnalysers | null
@@ -28,22 +17,32 @@ interface Props {
   onCheckMasking: (on: boolean) => void
   /** Launch closed-eye Ganzfeld visual sync (Player / Studio). */
   onOpenGanzfeld?: () => void
+  /** Compact layout for corner dock */
+  compact?: boolean
+  className?: string
 }
 
+/**
+ * Subliminal X-Ray — live bar equalizer + voice unveil / focus masking.
+ * Visual language matches the player equalizer mockup (amber bars, teal mask line).
+ */
 export function SubliminalXRay({
   analysers,
   maskingThresholdDb,
-  liveBeatHz,
-  ultrasonicHz,
-  ultrasonicOn,
+  liveBeatHz: _liveBeatHz,
+  ultrasonicHz: _ultrasonicHz,
+  ultrasonicOn: _ultrasonicOn,
   isolateVoice,
   checkMasking,
   onIsolateVoice,
   onCheckMasking,
   onOpenGanzfeld,
+  compact = false,
+  className = '',
 }: Props) {
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const raf = useRef(0)
+  const smoothed = useRef(new Float32Array(BAR_COUNT))
 
   useEffect(() => {
     const canvas = canvasRef.current
@@ -55,6 +54,10 @@ export function SubliminalXRay({
       const dpr = Math.min(2, window.devicePixelRatio || 1)
       const w = canvas.clientWidth
       const h = canvas.clientHeight
+      if (w < 2 || h < 2) {
+        raf.current = requestAnimationFrame(draw)
+        return
+      }
       if (canvas.width !== Math.floor(w * dpr) || canvas.height !== Math.floor(h * dpr)) {
         canvas.width = Math.floor(w * dpr)
         canvas.height = Math.floor(h * dpr)
@@ -62,181 +65,168 @@ export function SubliminalXRay({
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0)
       ctx.clearRect(0, 0, w, h)
 
-      // Charcoal panel
-      ctx.fillStyle = '#12141a'
+      // Recessed plate
+      ctx.fillStyle = '#0e1014'
       ctx.fillRect(0, 0, w, h)
 
-      const padL = 44
-      const padR = 16
-      const padT = 20
-      const padB = 28
-      const gw = w - padL - padR
+      const padX = 10
+      const padT = 8
+      const padB = 10
+      const gw = w - padX * 2
       const gh = h - padT - padB
+      const gap = Math.max(1.5, gw / BAR_COUNT / 5)
+      const barW = (gw - gap * (BAR_COUNT - 1)) / BAR_COUNT
 
-      // Log freq axis 20 Hz – 20 kHz
-      const fMin = 20
-      const fMax = 20000
-      const xAtF = (f: number) => {
-        const t = (Math.log10(Math.max(f, fMin)) - Math.log10(fMin)) / (Math.log10(fMax) - Math.log10(fMin))
-        return padL + t * gw
+      // Aggregate live spectrum into log-spaced bars
+      const levels = new Float32Array(BAR_COUNT)
+      if (analysers) {
+        const sources = [
+          analysers.music,
+          analysers.soundscape,
+          analysers.frequency,
+          analysers.voice,
+        ]
+        const bins = new Uint8Array(sources[0].frequencyBinCount)
+        const nyquist = (sources[0].context as AudioContext).sampleRate / 2
+        const fMin = 40
+        const fMax = 16000
+        const scratch = new Float32Array(BAR_COUNT)
+
+        for (const src of sources) {
+          src.getByteFrequencyData(bins)
+          for (let i = 0; i < bins.length; i++) {
+            const f = (i / bins.length) * nyquist
+            if (f < fMin || f > fMax) continue
+            const t =
+              (Math.log10(f) - Math.log10(fMin)) / (Math.log10(fMax) - Math.log10(fMin))
+            const bi = Math.min(BAR_COUNT - 1, Math.max(0, Math.floor(t * BAR_COUNT)))
+            scratch[bi] = Math.max(scratch[bi], bins[i] / 255)
+          }
+          for (let b = 0; b < BAR_COUNT; b++) {
+            levels[b] = Math.max(levels[b], scratch[b])
+            scratch[b] = 0
+          }
+        }
+      } else {
+        // Idle shimmer so the plate never looks empty
+        const t = performance.now() / 900
+        for (let b = 0; b < BAR_COUNT; b++) {
+          const envelope = 1 - (b / BAR_COUNT) * 0.72
+          levels[b] = (0.12 + 0.08 * Math.sin(t + b * 0.35)) * envelope
+        }
       }
-      const yAtDb = (db: number) => {
-        const lo = -90
-        const hi = 0
-        return padT + ((hi - db) / (hi - lo)) * gh
+
+      for (let b = 0; b < BAR_COUNT; b++) {
+        smoothed.current[b] += (levels[b] - smoothed.current[b]) * 0.28
       }
 
-      // Grid
-      ctx.strokeStyle = 'rgba(255,255,255,0.06)'
-      ctx.lineWidth = 1
-      for (const f of [50, 100, 200, 500, 1000, 2000, 5000, 10000]) {
-        const x = xAtF(f)
-        ctx.beginPath()
-        ctx.moveTo(x, padT)
-        ctx.lineTo(x, padT + gh)
-        ctx.stroke()
+      // Masking threshold as teal floor line (dB −90…0 → y)
+      const maskY =
+        padT + ((0 - Math.max(-90, Math.min(0, maskingThresholdDb))) / 90) * gh
+
+      for (let b = 0; b < BAR_COUNT; b++) {
+        const v = Math.max(0.04, Math.min(1, smoothed.current[b]))
+        const bh = Math.max(3, v * gh)
+        const x = padX + b * (barW + gap)
+        const y = padT + gh - bh
+        const grad = ctx.createLinearGradient(x, y, x, padT + gh)
+        grad.addColorStop(0, '#f0a45a')
+        grad.addColorStop(1, BAR_COLOR)
+        ctx.fillStyle = grad
+        ctx.globalAlpha = 0.55 + v * 0.45
+        roundBar(ctx, x, y, barW, bh, Math.min(2.5, barW / 2))
+        ctx.fill()
       }
+      ctx.globalAlpha = 1
 
-      // Brainwave band markers
-      for (const b of BANDS) {
-        const x0 = xAtF(b.lo)
-        const x1 = xAtF(b.hi)
-        ctx.fillStyle = 'rgba(251,146,60,0.06)'
-        ctx.fillRect(x0, padT, x1 - x0, gh)
-        ctx.fillStyle = 'rgba(253,186,116,0.55)'
-        ctx.font = '10px ui-sans-serif, system-ui'
-        ctx.fillText(b.label, x0 + 3, padT + 12)
-      }
-
-      // Ultrasonic zone
-      const ux = xAtF(ultrasonicHz)
-      ctx.fillStyle = ultrasonicOn ? 'rgba(34,211,238,0.12)' : 'rgba(34,211,238,0.05)'
-      ctx.fillRect(ux - 8, padT, 16, gh)
-      ctx.fillStyle = '#67e8f9'
-      ctx.font = '9px ui-sans-serif'
-      ctx.fillText('16k', ux - 10, padT + gh + 14)
-
-      // Conscious masking threshold
-      const my = yAtDb(maskingThresholdDb)
-      ctx.save()
-      ctx.setLineDash([6, 5])
-      ctx.strokeStyle = 'rgba(248,113,113,0.75)'
-      ctx.beginPath()
-      ctx.moveTo(padL, my)
-      ctx.lineTo(padL + gw, my)
-      ctx.stroke()
-      ctx.setLineDash([])
-      ctx.fillStyle = 'rgba(252,165,165,0.85)'
-      ctx.font = '10px ui-sans-serif'
-      ctx.fillText(`Mask ${maskingThresholdDb.toFixed(0)} dB`, padL + 4, my - 4)
-      ctx.restore()
-
-      // Live beat pin
-      const bx = xAtF(Math.max(0.5, liveBeatHz))
-      ctx.strokeStyle = '#fbbf24'
+      // Teal conscious-mask line
+      ctx.strokeStyle = MASK_COLOR
+      ctx.globalAlpha = 0.85
       ctx.lineWidth = 1.5
       ctx.beginPath()
-      ctx.moveTo(bx, padT)
-      ctx.lineTo(bx, padT + gh)
+      ctx.moveTo(padX, maskY)
+      ctx.lineTo(padX + gw, maskY)
       ctx.stroke()
-      ctx.fillStyle = '#fcd34d'
-      ctx.font = '10px ui-sans-serif'
-      ctx.fillText(`${liveBeatHz.toFixed(1)} Hz`, bx + 4, padT + 24)
-
-      // Spectra
-      if (analysers) {
-        const nyquist = (analysers.music.context as AudioContext).sampleRate / 2
-        drawCurve(ctx, analysers.music, BUS_COLORS.music, padL, padT, gw, gh, fMin, fMax, nyquist)
-        drawCurve(ctx, analysers.soundscape, BUS_COLORS.soundscape, padL, padT, gw, gh, fMin, fMax, nyquist)
-        drawCurve(ctx, analysers.frequency, BUS_COLORS.frequency, padL, padT, gw, gh, fMin, fMax, nyquist)
-        drawCurve(ctx, analysers.voice, BUS_COLORS.voice, padL, padT, gw, gh, fMin, fMax, nyquist)
-      }
-
-      // Legend
-      let lx = padL
-      for (const [k, c] of Object.entries(BUS_COLORS)) {
-        ctx.fillStyle = c
-        ctx.fillRect(lx, 6, 10, 10)
-        ctx.fillStyle = 'rgba(255,255,255,0.7)'
-        ctx.font = '10px ui-sans-serif'
-        ctx.fillText(k, lx + 14, 15)
-        lx += 78
-      }
+      ctx.globalAlpha = 1
 
       raf.current = requestAnimationFrame(draw)
     }
+
     raf.current = requestAnimationFrame(draw)
     return () => cancelAnimationFrame(raf.current)
-  }, [analysers, maskingThresholdDb, liveBeatHz, ultrasonicHz, ultrasonicOn])
+  }, [analysers, maskingThresholdDb])
 
   return (
-    <div className="panel overflow-hidden p-3">
-      <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
-        <h3 className="panel-title text-sm">Subliminal X-Ray</h3>
-        <div className="flex flex-wrap gap-2">
-          {onOpenGanzfeld && (
-            <button
-              type="button"
-              className="btn btn-teal text-xs"
-              onClick={onOpenGanzfeld}
-              title="Closed-eye photic flicker locked to entrainment phase"
-            >
-              👁️ Ganzfeld Visual Sync
-            </button>
-          )}
+    <div className={`xray-eq ${compact ? 'xray-eq--compact' : ''} ${className}`.trim()}>
+      <div className="xray-eq-head">
+        <div className="xray-eq-title-row">
+          <span className="xray-eq-pulse" aria-hidden />
+          <h3 className="xray-eq-title">Subliminal X-Ray</h3>
+          <span className="xray-eq-help" title="Live spectrum of your mix buses with conscious masking floor">
+            ?
+          </span>
+        </div>
+        <div className="xray-eq-focus">
+          <span className="xray-eq-focus-label" title="Highlight energy above the masking threshold">
+            Focus
+          </span>
           <button
             type="button"
-            className={`btn text-xs ${isolateVoice ? 'btn-primary' : 'btn-ghost'}`}
-            onClick={() => onIsolateVoice(!isolateVoice)}
-          >
-            Isolate Voice
-          </button>
-          <button
-            type="button"
-            className={`btn text-xs ${checkMasking ? 'btn-primary' : 'btn-ghost'}`}
+            className="xray-eq-toggle"
+            role="switch"
+            aria-checked={checkMasking}
+            aria-label="Focus masking check"
+            data-on={checkMasking ? '1' : '0'}
             onClick={() => onCheckMasking(!checkMasking)}
           >
-            Check Masking
+            <span className="xray-eq-toggle-knob" />
           </button>
+          {onOpenGanzfeld && (
+            <button type="button" className="btn btn-ghost text-xs" onClick={onOpenGanzfeld}>
+              Ganzfeld
+            </button>
+          )}
         </div>
       </div>
-      <canvas ref={canvasRef} className="h-56 w-full rounded-md" />
+
+      <canvas
+        ref={canvasRef}
+        className={`xray-eq-canvas ${compact ? 'h-28' : 'h-40 sm:h-48'}`}
+        aria-hidden
+      />
+
+      <button
+        type="button"
+        className="xray-eq-unveil"
+        data-active={isolateVoice ? '1' : '0'}
+        onClick={() => onIsolateVoice(!isolateVoice)}
+      >
+        <span className="xray-eq-unveil-icon" aria-hidden>
+          ◉
+        </span>
+        {isolateVoice ? 'Hide spoken layer' : 'Unveil the spoken layer'}
+      </button>
+      <p className="xray-eq-blurb">
+        Mutes the ambience and plays your script at full level so you can audit it anytime.
+      </p>
     </div>
   )
 }
 
-function drawCurve(
+function roundBar(
   ctx: CanvasRenderingContext2D,
-  analyser: AnalyserNode,
-  color: string,
-  padL: number,
-  padT: number,
-  gw: number,
-  gh: number,
-  fMin: number,
-  fMax: number,
-  nyquist: number,
+  x: number,
+  y: number,
+  w: number,
+  h: number,
+  r: number,
 ) {
-  const bins = new Uint8Array(analyser.frequencyBinCount)
-  analyser.getByteFrequencyData(bins)
+  const rr = Math.min(r, w / 2, h / 2)
   ctx.beginPath()
-  ctx.strokeStyle = color
-  ctx.globalAlpha = 0.85
-  ctx.lineWidth = 1.5
-  let started = false
-  for (let i = 1; i < bins.length; i++) {
-    const f = (i / bins.length) * nyquist
-    if (f < fMin || f > fMax) continue
-    const t =
-      (Math.log10(f) - Math.log10(fMin)) / (Math.log10(fMax) - Math.log10(fMin))
-    const x = padL + t * gw
-    const db = (bins[i] / 255) * 90 - 90
-    const y = padT + ((0 - db) / 90) * gh
-    if (!started) {
-      ctx.moveTo(x, y)
-      started = true
-    } else ctx.lineTo(x, y)
-  }
-  ctx.stroke()
-  ctx.globalAlpha = 1
+  ctx.moveTo(x + rr, y)
+  ctx.arcTo(x + w, y, x + w, y + h, rr)
+  ctx.arcTo(x + w, y + h, x, y + h, rr)
+  ctx.arcTo(x, y + h, x, y, rr)
+  ctx.arcTo(x, y, x + w, y, rr)
+  ctx.closePath()
 }
