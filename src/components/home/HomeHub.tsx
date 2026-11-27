@@ -7,6 +7,8 @@ import { ThemeToggle } from '../ThemeToggle'
 
 interface Props {
   onNavigate: (view: AppView, launch?: AureviaLaunch | null) => void
+  /** Play a saved mix id from Account Hub history (opens Saved + mini-player). */
+  onPlaySavedMix?: (mixId: string) => void
 }
 
 const CARDS: {
@@ -57,12 +59,6 @@ const CARDS: {
     blurb: 'Goal manifestation hub — collage boards, live countdowns, progress tracking.',
   },
   {
-    id: 'player',
-    title: 'Subliminal Player',
-    blurb:
-      'Play saved mixes with frequency cymatics, X-Ray EQ, mix volumes, and advanced tools.',
-  },
-  {
     id: 'ganzfeld',
     title: 'Ganzfeld Visual Sync',
     blurb: 'Closed-eye photic flicker locked to the entrainment phase — separate from Create.',
@@ -70,7 +66,8 @@ const CARDS: {
   {
     id: 'saved',
     title: 'Saved Tracks',
-    blurb: 'Completed mixes on this device — open in Player, edit, export, or delete.',
+    blurb:
+      'Completed mixes on this device — play in a corner mini-player, edit, share, clone, or export.',
   },
   {
     id: 'presets',
@@ -85,7 +82,7 @@ const CARDS: {
   },
 ]
 
-export function HomeHub({ onNavigate }: Props) {
+export function HomeHub({ onNavigate, onPlaySavedMix }: Props) {
   const { theme, toggleTheme } = useTheme()
   const door = skyDoor()
   const night = dreamHour()
@@ -106,8 +103,8 @@ export function HomeHub({ onNavigate }: Props) {
           <ThemeToggle theme={theme} onToggle={toggleTheme} />
           <AccountAvatarMenu
             onPlayTrack={(mixId) => {
-              if (mixId) onNavigate('player')
-              else onNavigate('player')
+              onNavigate('saved')
+              if (mixId) onPlaySavedMix?.(mixId)
             }}
           />
         </div>

@@ -1,17 +1,19 @@
-import { useState } from 'react'
+import { useState, type ReactNode } from 'react'
 import { AuraCalibration } from './components/AuraCalibration'
 import { AureviaSession } from './components/aurevia/AureviaSession'
 import { CreateSubliminal } from './components/create/CreateSubliminal'
 import { GanzfeldHub } from './components/ganzfeld/GanzfeldHub'
 import { FeatureGuide } from './components/guide/FeatureGuide'
 import { HomeHub } from './components/home/HomeHub'
-import { SubliminalMixPlayer } from './components/player/SubliminalMixPlayer'
+import { SavedMixMiniPlayer } from './components/player/SavedMixMiniPlayer'
 import { RemScribeHub } from './components/remscribe/RemScribeHub'
 import { SavedMixesHub } from './components/saved/SavedMixesHub'
 import { SonicDnaScanner } from './components/SonicDnaScanner'
 import { SubliminalStudyHub } from './components/study/SubliminalStudyHub'
 import { VisionBoardHub } from './components/vision/VisionBoardHub'
 import { clearAureviaQuery, readAureviaLaunch, type AureviaLaunch } from './data/aureviaShare'
+import { useSavedMixPlayback } from './hooks/useSavedMixPlayback'
+import { savedMixStorage } from './services/savedMixStorage'
 import type { SavedMix } from './types/savedMix'
 import type { AppView } from './types/studio'
 
@@ -20,19 +22,20 @@ export default function App() {
   const [view, setView] = useState<AppView>(openedFromLink ? 'aurevia' : 'home')
   const [launch, setLaunch] = useState<AureviaLaunch | null>(openedFromLink)
   const [editMix, setEditMix] = useState<SavedMix | null>(null)
-  const [playerMixId, setPlayerMixId] = useState<string | null>(null)
+  const playback = useSavedMixPlayback()
 
   const go = (next: AppView, nextLaunch?: AureviaLaunch | null) => {
-    if (next === 'aurevia') setLaunch(nextLaunch ?? null)
+    // Dedicated player page retired — route to Saved Tracks + mini-player.
+    const target: AppView = next === 'player' ? 'saved' : next
+    if (target === 'aurevia') setLaunch(nextLaunch ?? null)
     else {
       setLaunch(null)
       clearAureviaQuery()
     }
-    if (next === 'create' || next === 'studio' || next === 'presets') {
+    if (target === 'create' || target === 'studio' || target === 'presets') {
       setEditMix(null)
     }
-    if (next !== 'player') setPlayerMixId(null)
-    setView(next)
+    setView(target)
   }
 
   const openCreate = (mix: SavedMix | null = null) => {
@@ -40,14 +43,19 @@ export default function App() {
     setView('create')
   }
 
-  const openPlayer = (mixId: string | null = null) => {
-    setPlayerMixId(mixId)
-    setView('player')
-  }
-
-  if (view === 'home') return <HomeHub onNavigate={go} />
-  if (view === 'create' || view === 'studio' || view === 'presets')
-    return (
+  let body: ReactNode
+  if (view === 'home')
+    body = (
+      <HomeHub
+        onNavigate={go}
+        onPlaySavedMix={(mixId) => {
+          const mix = savedMixStorage.get(mixId)
+          if (mix) void playback.playMix(mix)
+        }}
+      />
+    )
+  else if (view === 'create' || view === 'studio' || view === 'presets')
+    body = (
       <CreateSubliminal
         key={editMix?.id ?? (view === 'presets' ? 'presets' : 'new')}
         initialMix={editMix}
@@ -55,49 +63,51 @@ export default function App() {
         onOpenSaved={() => setView('saved')}
       />
     )
-  if (view === 'vision') return <VisionBoardHub onHome={() => go('home')} />
-  if (view === 'remscribe') return <RemScribeHub onHome={() => go('home')} />
-  if (view === 'ganzfeld') return <GanzfeldHub onHome={() => go('home')} />
-  if (view === 'study') return <SubliminalStudyHub onHome={() => go('home')} />
-  if (view === 'aura')
-    return (
+  else if (view === 'vision') body = <VisionBoardHub onHome={() => go('home')} />
+  else if (view === 'remscribe') body = <RemScribeHub onHome={() => go('home')} />
+  else if (view === 'ganzfeld') body = <GanzfeldHub onHome={() => go('home')} />
+  else if (view === 'study') body = <SubliminalStudyHub onHome={() => go('home')} />
+  else if (view === 'aura')
+    body = (
       <AuraCalibration
         onHome={() => go('home')}
         onGenerateTrack={() => go('create')}
       />
     )
-  if (view === 'sonicDna')
-    return (
+  else if (view === 'sonicDna')
+    body = (
       <SonicDnaScanner
         onHome={() => go('home')}
         onApplyToStudio={() => go('create')}
       />
     )
-  if (view === 'player')
-    return (
-      <SubliminalMixPlayer
-        mixId={playerMixId}
-        onHome={() => go('home')}
-        onOpenSaved={() => setView('saved')}
-        onSelectMix={(id) => setPlayerMixId(id || null)}
-      />
-    )
-  if (view === 'aurevia')
-    return (
+  else if (view === 'aurevia')
+    body = (
       <AureviaSession
         key={`${launch?.path ?? 'full'}:${launch?.question ?? ''}:${launch?.fromGift ? 'gift' : 'open'}:${launch?.dream ? 'dream' : 'day'}:${launch?.quietVoice ? 'quiet' : 'voice'}`}
         launch={launch}
         onHome={() => go('home')}
       />
     )
-  if (view === 'saved')
-    return (
+  else if (view === 'saved' || view === 'player')
+    body = (
       <SavedMixesHub
         onHome={() => go('home')}
         onEdit={(mix) => openCreate(mix)}
         onCreate={() => openCreate(null)}
-        onPlayInPlayer={(mix) => openPlayer(mix.id)}
+        onPlay={(mix) => void playback.playMix(mix)}
+        playingMixId={playback.activeMixId}
       />
     )
-  return <FeatureGuide onHome={() => go('home')} />
+  else body = <FeatureGuide onHome={() => go('home')} />
+
+  return (
+    <>
+      {body}
+      <SavedMixMiniPlayer
+        playback={playback}
+        onOpenSaved={() => setView('saved')}
+      />
+    </>
+  )
 }

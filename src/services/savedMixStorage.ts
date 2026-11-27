@@ -141,4 +141,18 @@ export const savedMixStorage = {
     writeStore(store)
     emit()
   },
+
+  /** Duplicate a mix as a new Saved Track (copy). */
+  clone(id: string): SavedMix | undefined {
+    const src = this.get(id)
+    if (!src) return undefined
+    const base = src.title.replace(/\s*\(copy(?:\s+\d+)?\)\s*$/i, '').trim() || 'Untitled Mix'
+    const siblings = this.list().filter((m) => m.title === base || m.title.startsWith(`${base} (copy`))
+    const title =
+      siblings.length <= 1 ? `${base} (copy)` : `${base} (copy ${siblings.length})`
+    return this.save({
+      title,
+      session: structuredClone(src.session),
+    })
+  },
 }

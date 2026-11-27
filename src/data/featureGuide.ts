@@ -30,13 +30,13 @@ export const FEATURE_GUIDE_SECTIONS: FeatureGuideSection[] = [
       {
         id: 'overview',
         title: 'How the studio fits together',
-        summary: 'Create → Save → Player · plus overnight, voyage, and visual modules.',
+        summary: 'Create → Save → play from Saved Tracks · plus overnight, voyage, and visual modules.',
         whatFor:
-          'One place to build frequency + soundtrack + ambient + affirmation mixes, then listen with cymatics or an X-Ray equalizer.',
+          'One place to build frequency + soundtrack + ambient + affirmation mixes, then listen from Saved Tracks.',
         howTo: [
           'Start at Home → Create Subliminal (or Quick Presets for a curated kickoff).',
           'Walk the seven steps; on Mix, preview and tap Complete track.',
-          'Open Saved Tracks or Subliminal Player to listen and fine-tune levels.',
+          'Open Saved Tracks to Play (corner mini-player), Edit, Share, or Clone.',
           'Use REMscribe for overnight sessions, Ganzfeld for closed-eye flicker, Aurevia for short voyages.',
         ],
         expect: [
@@ -173,37 +173,36 @@ export const FEATURE_GUIDE_SECTIONS: FeatureGuideSection[] = [
   {
     id: 'player-saved',
     title: 'Player & Saved Tracks',
-    intro: 'Listen to completed mixes with visuals, live levels, and the same advanced tools as Create.',
+    intro: 'Play completed mixes from Saved Tracks — audio keeps going in a corner mini-player while you browse.',
     entries: [
       {
         id: 'subliminal-player',
-        title: 'Subliminal Player',
-        summary: 'Cymatics ↔ X-Ray EQ, mix volumes, affirmation speed, advanced tools.',
-        whatFor: 'Dedicated playback surface for mixes you already completed.',
+        title: 'Corner mini-player',
+        summary: 'Compact dock on the lower-right: play, pause, stop, minimize.',
+        whatFor: 'Keep a saved mix running in the background without a dedicated player page.',
         howTo: [
-          'Home → Subliminal Player, or Saved Tracks → Open Player.',
-          'Play the mix; toggle Cymatics (figure locked to that mix’s carrier + beat) or X-Ray Equalizer (four buses).',
-          'Adjust soundtrack / frequency / ambient / voice volumes; use Optimal Mix Reset for Standard sweet spots.',
-          'Change affirmation speed; expand Advanced configurations for Space 3D, Breath, Illusions, etc.',
+          'Home → Saved Tracks → Play on a mix card.',
+          'Use the corner player to Pause / Resume / Stop, or minimize it to a pill.',
+          'Navigate Home or other hubs — playback continues until you Stop.',
         ],
         expect: [
-          'Cymatics only visualizes the frequency of the playing mix — not a generic animation.',
-          'Edits to levels persist back into the saved mix on this device.',
-          'Stop frees the audio engines before you leave.',
+          'There is no separate player screen; Saved Tracks is the library.',
+          'Minimizing only collapses the dock — audio keeps running.',
         ],
       },
       {
         id: 'saved-tracks',
         title: 'Saved Tracks',
         summary: 'Library of completed mixes on this browser.',
-        whatFor: 'Find, open in Player, edit in Create, export a short WAV, or delete.',
+        whatFor: 'Play, edit, share, clone, export a short WAV, or delete.',
         howTo: [
           'Open Saved Tracks from Home.',
-          'Open Player for full visuals/tools, Edit to return to Create, Export 12s for a quick WAV preview.',
+          'On each card: Play (mini-player), Edit (Create), Share, Clone, Export 12s, or Delete.',
         ],
         expect: [
           'Storage is local to this browser profile (cap applies).',
           'Clearing site data removes saved mixes.',
+          'Share uses the device share sheet or copies a text summary.',
         ],
       },
       {

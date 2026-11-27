@@ -854,3 +854,115 @@ body {
   cursor: crosshair;
   box-shadow: inset 0 0 80px rgba(0, 0, 0, 0.45);
 }
+
+/* Saved-mix corner mini-player (persistent across views) */
+.saved-mini-player {
+  position: fixed;
+  right: max(0.85rem, env(safe-area-inset-right));
+  bottom: max(0.85rem, env(safe-area-inset-bottom));
+  z-index: 90;
+  width: min(20.5rem, calc(100vw - 1.7rem));
+  padding: 0.85rem 0.95rem;
+  box-shadow: 0 16px 40px color-mix(in oklab, #000 35%, transparent);
+  animation: saved-mini-in 280ms ease-out;
+}
+
+.saved-mini-player[data-minimized='true'] {
+  width: auto;
+  padding: 0;
+  background: transparent;
+  border: none;
+  box-shadow: none;
+}
+
+.saved-mini-player-head {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.5rem;
+  margin-bottom: 0.65rem;
+}
+
+.saved-mini-player-kicker {
+  font-size: 0.65rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.saved-mini-player-title {
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: 0.98rem;
+  line-height: 1.25;
+  color: var(--ink);
+}
+
+.saved-mini-player-meta {
+  margin-top: 0.15rem;
+  font-size: 0.72rem;
+  color: var(--muted);
+}
+
+.saved-mini-player-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+
+.saved-mini-player-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  padding: 0.55rem 0.85rem;
+  border-radius: 999px;
+  border: 1px solid var(--border-strong);
+  background: color-mix(in oklab, var(--surface-solid) 92%, transparent);
+  color: var(--ink);
+  font-size: 0.78rem;
+  font-weight: 700;
+  box-shadow: 0 10px 28px color-mix(in oklab, #000 28%, transparent);
+  cursor: pointer;
+}
+
+.saved-mini-player-pill:hover {
+  border-color: var(--accent-2);
+}
+
+.saved-mini-player-dot {
+  width: 0.45rem;
+  height: 0.45rem;
+  border-radius: 999px;
+  background: var(--muted);
+}
+
+.saved-mini-player-dot[data-live='1'] {
+  background: var(--accent-2);
+  box-shadow: 0 0 0 3px color-mix(in oklab, var(--accent-2) 28%, transparent);
+  animation: saved-mini-pulse 1.4s ease-in-out infinite;
+}
+
+.saved-mini-player-pill-title {
+  letter-spacing: 0.02em;
+}
+
+@keyframes saved-mini-in {
+  from {
+    opacity: 0;
+    transform: translateY(10px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes saved-mini-pulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.55;
+  }
+}
