@@ -1,9 +1,19 @@
-/**
- * Cloudflare Pages — committed so Wrangler / CI builds stay reproducible
- * (avoids Wrangler 4.68+ regenerating config on every first deploy).
- */
 {
+  "$schema": "node_modules/wrangler/config-schema.json",
   "name": "subliminax",
-  "compatibility_date": "2025-11-26",
-  "pages_build_output_dir": "./dist"
+  "main": "src/index.js",
+  "compatibility_date": "2026-11-23",
+  "observability": {
+    "enabled": true
+  },
+  "routes": [
+    { "pattern": "subliminax.com", "custom_domain": true },
+    { "pattern": "www.subliminax.com", "custom_domain": true }
+  ],
+  // Vite SPA output — keeps Worker deploys serving the React build
+  "assets": {
+    "directory": "./dist",
+    "binding": "ASSETS",
+    "not_found_handling": "single-page-application"
+  }
 }

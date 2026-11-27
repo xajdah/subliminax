@@ -1,4 +1,4 @@
-name: Cloudflare Pages
+name: Cloudflare Worker
 
 on:
   push:
@@ -8,7 +8,7 @@ on:
   workflow_dispatch:
 
 concurrency:
-  group: cloudflare-pages-${{ github.ref }}
+  group: cloudflare-worker-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
@@ -31,18 +31,18 @@ jobs:
       - name: Build
         run: npm run build
 
-      - name: Deploy to Cloudflare Pages
+      - name: Deploy Worker (subliminax)
         if: github.event_name != 'pull_request'
         uses: cloudflare/wrangler-action@v3
         with:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-          command: pages deploy dist --project-name=subliminax
+          command: deploy
 
-      - name: Upload Pages artifact (PR preview)
+      - name: Upload dist artifact (PR)
         if: github.event_name == 'pull_request'
         uses: actions/upload-artifact@v4
         with:
-          name: pages-dist
+          name: worker-dist
           path: dist
           retention-days: 3
