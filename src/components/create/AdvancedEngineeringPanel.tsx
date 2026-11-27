@@ -22,6 +22,10 @@ interface Props {
   checkMasking: boolean
   onIsolateVoice: (on: boolean) => void
   onCheckMasking: (on: boolean) => void
+  /** When true, skip embedded X-Ray (host already shows equalizer). */
+  hideXRay?: boolean
+  /** Compact copy for docked / mini players */
+  compact?: boolean
 }
 
 function getPath(state: PsychoacousticState, path: string): number | boolean {
@@ -55,6 +59,8 @@ export function AdvancedEngineeringPanel({
   checkMasking,
   onIsolateVoice,
   onCheckMasking,
+  hideXRay = false,
+  compact = false,
 }: Props) {
   const [group, setGroup] = useState<ToolGroup>('space')
   const tools = useMemo(() => ADVANCED_TOOLS.filter((t) => t.group === group), [group])
@@ -68,38 +74,42 @@ export function AdvancedEngineeringPanel({
 
   return (
     <div className="space-y-4">
-      <div className="flex flex-wrap items-start justify-between gap-3">
-        <div>
-          <h3 className="panel-title text-base">Advanced Audio Engineering</h3>
-          <p className="mt-1 max-w-xl text-sm text-muted">
-            Add psychoacoustic tools to this track. Each effect includes a plain-language description.
-            Preview anytime — then complete when it feels right. Ganzfeld lives on the Home hub.
-          </p>
+      {!compact && (
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div>
+            <h3 className="panel-title text-base">Advanced Audio Engineering</h3>
+            <p className="mt-1 max-w-xl text-sm text-muted">
+              Add psychoacoustic tools to this track. Each effect includes a plain-language description.
+              Preview anytime — then complete when it feels right. Ganzfeld lives on the Home hub.
+            </p>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            {!enginePlaying ? (
+              <button type="button" className="btn btn-teal" onClick={() => onPreview()}>
+                Preview with tools
+              </button>
+            ) : (
+              <button type="button" className="btn btn-ghost" onClick={onStopPreview}>
+                Stop preview
+              </button>
+            )}
+          </div>
         </div>
-        <div className="flex flex-wrap gap-2">
-          {!enginePlaying ? (
-            <button type="button" className="btn btn-teal" onClick={() => onPreview()}>
-              Preview with tools
-            </button>
-          ) : (
-            <button type="button" className="btn btn-ghost" onClick={onStopPreview}>
-              Stop preview
-            </button>
-          )}
-        </div>
-      </div>
+      )}
 
-      <SubliminalXRay
-        analysers={analysers}
-        maskingThresholdDb={advanced.buses.music + advanced.breath.envelopeMaskDb}
-        liveBeatHz={advanced.liveBeatHz}
-        ultrasonicHz={advanced.breath.ultrasonicCarrierHz}
-        ultrasonicOn={advanced.breath.ultrasonic}
-        isolateVoice={isolateVoice}
-        checkMasking={checkMasking}
-        onIsolateVoice={onIsolateVoice}
-        onCheckMasking={onCheckMasking}
-      />
+      {!hideXRay && (
+        <SubliminalXRay
+          analysers={analysers}
+          maskingThresholdDb={advanced.buses.music + advanced.breath.envelopeMaskDb}
+          liveBeatHz={advanced.liveBeatHz}
+          ultrasonicHz={advanced.breath.ultrasonicCarrierHz}
+          ultrasonicOn={advanced.breath.ultrasonic}
+          isolateVoice={isolateVoice}
+          checkMasking={checkMasking}
+          onIsolateVoice={onIsolateVoice}
+          onCheckMasking={onCheckMasking}
+        />
+      )}
 
       <div className="flex flex-wrap gap-1">
         {ADVANCED_TOOL_GROUPS.map((g) => (
