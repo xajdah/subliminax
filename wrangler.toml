@@ -1,5 +1,7 @@
-# Cloudflare Worker (not Pages) — single source of truth for Workers Builds.
-# Do not add pages_build_output_dir; that makes `wrangler deploy` treat this as Pages.
+# Local / default Worker config (static assets via Workers, not Pages).
+# Never set pages_build_output_dir here — it forces Pages mode.
+# Cloudflare Workers Builds Deploy command should use:
+#   npx wrangler deploy --config ./ci/wrangler.toml --autoconfig=false
 name = "subliminax"
 main = "src/index.js"
 compatibility_date = "2026-11-23"

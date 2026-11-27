@@ -37,7 +37,7 @@ jobs:
         with:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-          command: deploy --autoconfig=false
+          command: deploy --config ./ci/wrangler.toml --autoconfig=false
 
       - name: Upload dist artifact (PR)
         if: github.event_name == 'pull_request'

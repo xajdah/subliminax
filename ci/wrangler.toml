@@ -1,0 +1,23 @@
+# Isolated Worker deploy config for Cloudflare Workers Builds.
+# CF Builds can inject pages_build_output_dir into the repo-root wrangler.toml
+# (dashboard "Build output directory"). That makes `wrangler deploy` throw
+# "Workers-specific command in a Pages project". Point Deploy at THIS file instead.
+name = "subliminax"
+main = "../src/index.js"
+compatibility_date = "2026-11-23"
+
+[observability]
+enabled = true
+
+[[routes]]
+pattern = "subliminax.com"
+custom_domain = true
+
+[[routes]]
+pattern = "www.subliminax.com"
+custom_domain = true
+
+[assets]
+directory = "../dist"
+binding = "ASSETS"
+not_found_handling = "single-page-application"
